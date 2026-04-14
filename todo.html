@@ -1,0 +1,2649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#16324F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>To Do</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f0f2f5;
+    min-height: 100vh;
+    padding: 24px 16px;
+    color: #1a1a2e;
+  }
+
+  .app {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+
+  header h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1a1a2e;
+  }
+
+  header .date {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 2px;
+  }
+
+  .progress-bar-wrap {
+    background: #e0e0e0;
+    border-radius: 99px;
+    height: 8px;
+    margin-bottom: 0;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #6c63ff, #a78bfa);
+    border-radius: 99px;
+    transition: width 0.4s ease;
+  }
+
+  .progress-label {
+    text-align: right;
+    font-size: 0.78rem;
+    color: #888;
+    margin-top: -22px;
+    margin-bottom: 22px;
+  }
+
+  .section {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 18px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #888;
+  }
+
+  .section-title.one { color: #6c63ff; }
+  .section-title.two { color: #e91e8c; }
+  .section-title.shared { color: #00b4d8; }
+
+  .add-btn {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    color: #bbb;
+    line-height: 1;
+    transition: color 0.2s;
+    padding: 0 2px;
+  }
+  .add-btn:hover { color: #6c63ff; }
+
+  .todo-item {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 2px 12px;
+    padding: 8px 60px 8px 0;
+    border-bottom: 1px solid #f3f3f3;
+    transition: opacity 0.3s;
+    position: relative;
+  }
+
+  .todo-item:last-of-type { border-bottom: none; }
+
+  .todo-item.done { opacity: 0.45; }
+
+  .todo-item input[type="checkbox"] {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #d0d0d0;
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 1px;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .todo-item input[type="checkbox"]:checked {
+    background: #6c63ff;
+    border-color: #6c63ff;
+  }
+
+  .todo-item input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 6px;
+    width: 5px;
+    height: 9px;
+    border: 2px solid #fff;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg);
+  }
+
+  .one .todo-item input[type="checkbox"]:checked { background: #6c63ff; border-color: #6c63ff; }
+  .two .todo-item input[type="checkbox"]:checked { background: #e91e8c; border-color: #e91e8c; }
+  .shared .todo-item input[type="checkbox"]:checked { background: #00b4d8; border-color: #00b4d8; }
+
+  .todo-text {
+    flex: 1;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: #333;
+    cursor: pointer;
+    word-break: break-word;
+  }
+
+  .todo-item.done .todo-text {
+    text-decoration: line-through;
+    color: #aaa;
+  }
+
+  .todo-dates {
+    display: flex;
+    gap: 12px;
+    font-size: 0.7rem;
+    color: #aaa;
+    margin-top: -2px;
+    flex-basis: 100%;
+    padding-left: 32px;
+  }
+
+  .todo-dates .due { color: #888; }
+  .todo-dates .due.overdue { color: #e53935; font-weight: 600; }
+  .todo-dates .due.today { color: #f59e0b; font-weight: 600; }
+  .todo-dates .completed-date { color: #22c55e; }
+
+  .add-row .due-date-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .add-row .due-date-wrap label {
+    font-size: 0.75rem;
+    color: #aaa;
+    white-space: nowrap;
+  }
+
+  .add-row input[type="date"] {
+    border: 1.5px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 0.8rem;
+    outline: none;
+    color: #555;
+    font-family: inherit;
+    transition: border-color 0.2s;
+  }
+  .add-row input[type="date"]:focus { border-color: #6c63ff; }
+
+  .item-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0px 2px;
+    position: absolute;
+    right: 0;
+    top: 6px;
+  }
+
+  .icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #bbb;
+    padding: 2px 5px;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+    line-height: 1.4;
+  }
+  .icon-btn:hover { background: #f0f0f0; color: #555; }
+  .icon-btn.action-btn:hover { color: #6c63ff; background: #f0eeff; }
+  .icon-btn.edit-btn:hover  { color: #f59e0b; background: #fff7e6; }
+  .icon-btn.delete-btn:hover { color: #e53935; background: #fff0f0; }
+
+  /* Inline edit mode */
+  .todo-item.editing .todo-text { display: none; }
+  .inline-edit-wrap {
+    flex: 1;
+    display: none;
+    align-items: center;
+    gap: 6px;
+  }
+  .todo-item.editing .inline-edit-wrap { display: flex; }
+  .inline-edit-input {
+    flex: 1;
+    border: 1.5px solid #6c63ff;
+    border-radius: 7px;
+    padding: 5px 10px;
+    font-size: 0.93rem;
+    font-family: inherit;
+    outline: none;
+    color: #1a1a2e;
+    background: #f7f5ff;
+  }
+  .inline-save-btn {
+    background: #6c63ff;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .inline-cancel-btn {
+    background: #f0f0f0;
+    color: #888;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  /* Action sheet overlay */
+  .action-sheet-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+    animation: fadeIn 0.15s ease;
+  }
+  .action-sheet-overlay.visible { display: flex; }
+
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+  .action-sheet {
+    background: #fff;
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    max-width: 600px;
+    padding: 24px 24px 32px;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.15);
+    animation: slideUp 0.22s cubic-bezier(0.34,1.26,0.64,1);
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(60px); opacity:0; }
+    to   { transform: translateY(0);    opacity:1; }
+  }
+
+  .action-sheet-handle {
+    width: 40px; height: 4px;
+    background: #e0e0e0;
+    border-radius: 99px;
+    margin: 0 auto 20px;
+  }
+
+  .action-sheet-item-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #aaa;
+    margin-bottom: 4px;
+  }
+
+  .action-sheet-item-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .action-sheet-prompt-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 7px;
+  }
+
+  .action-sheet-textarea {
+    width: 100%;
+    min-height: 72px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    color: #333;
+    line-height: 1.5;
+    transition: border-color 0.2s;
+    margin-bottom: 12px;
+  }
+  .action-sheet-textarea:focus { border-color: #6c63ff; }
+
+  .action-sheet-quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .action-quick-chip {
+    background: #f4f4f8;
+    color: #555;
+    border: 1.5px solid #e8e8f0;
+    border-radius: 99px;
+    padding: 5px 13px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .action-quick-chip:hover, .action-quick-chip.selected {
+    background: #6c63ff; color: #fff; border-color: #6c63ff;
+  }
+
+  .action-sheet-footer {
+    display: flex;
+    gap: 10px;
+  }
+
+  .action-sheet-send {
+    flex: 1;
+    background: #6c63ff;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+  }
+  .action-sheet-send:hover { background: #5a52e0; }
+
+  .action-sheet-cancel {
+    background: #f0f0f0;
+    color: #666;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 18px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .action-sheet-cancel:hover { background: #e0e0e0; }
+
+  .tag {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 99px;
+    background: #f0eeff;
+    color: #6c63ff;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 3px;
+  }
+
+  .tag.urgent { background: #fff0f5; color: #e91e8c; }
+  .tag.note { background: #fff7e6; color: #f59e0b; }
+
+  /* Add item inline */
+  .add-row {
+    display: none;
+    gap: 8px;
+    padding-top: 12px;
+    align-items: center;
+  }
+
+  .add-row.visible { display: flex; }
+
+  .add-row input {
+    flex: 1;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .add-row input:focus { border-color: #6c63ff; }
+
+  .add-row button {
+    background: #6c63ff;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+  .add-row button:hover { background: #5a52e0; }
+  .add-row .cancel-btn {
+    background: #f0f0f0;
+    color: #666;
+  }
+  .add-row .cancel-btn:hover { background: #e0e0e0; }
+
+  /* Action modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .modal-overlay.visible { display: flex; }
+
+  .modal {
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px;
+    max-width: 460px;
+    width: 100%;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+  }
+
+  .modal h2 {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+    color: #1a1a2e;
+  }
+
+  .modal p {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .modal-actions button {
+    flex: 1;
+    min-width: 120px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: none;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: #6c63ff;
+    color: #fff;
+  }
+  .btn-primary:hover { background: #5a52e0; }
+
+  .btn-secondary {
+    background: #f0f0f0;
+    color: #555;
+  }
+  .btn-secondary:hover { background: #e0e0e0; }
+
+  /* Chat widget */
+  .chat-section {
+    background: #fff;
+    border-radius: 16px;
+    margin-bottom: 18px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chat-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    background: linear-gradient(135deg, #f7f5ff, #f0f9ff);
+  }
+
+  .chat-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6c63ff, #a78bfa);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .chat-header-info {
+    flex: 1;
+  }
+
+  .chat-header-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #1a1a2e;
+  }
+
+  .chat-header-sub {
+    font-size: 0.72rem;
+    color: #aaa;
+  }
+
+  .chat-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    flex-shrink: 0;
+  }
+
+  .chat-messages {
+    padding: 16px 16px 8px;
+    min-height: 180px;
+    max-height: 340px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scroll-behavior: smooth;
+  }
+
+  .msg {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    max-width: 88%;
+    animation: fadeUp 0.2s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .msg.bot  { align-self: flex-start; }
+
+  .msg-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6c63ff, #a78bfa);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    color: #fff;
+    flex-shrink: 0;
+    margin-bottom: 2px;
+  }
+
+  .msg-bubble {
+    padding: 9px 13px;
+    border-radius: 16px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+
+  .msg.user .msg-bubble {
+    background: #6c63ff;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+
+  .msg.bot .msg-bubble {
+    background: #f4f4f8;
+    color: #222;
+    border-bottom-left-radius: 4px;
+  }
+
+  .msg-time {
+    font-size: 0.65rem;
+    color: #ccc;
+    margin-bottom: 4px;
+    flex-shrink: 0;
+    align-self: flex-end;
+  }
+
+  /* Quick action chips */
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 0 2px;
+    align-self: flex-start;
+    margin-left: 34px;
+  }
+
+  .chip {
+    background: #f0eeff;
+    color: #6c63ff;
+    border: 1.5px solid #d4cfff;
+    border-radius: 99px;
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .chip:hover { background: #6c63ff; color: #fff; border-color: #6c63ff; }
+
+  /* Typing indicator */
+  .typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    padding: 4px 0;
+  }
+
+  .typing-dots {
+    display: flex;
+    gap: 4px;
+    background: #f4f4f8;
+    padding: 8px 12px;
+    border-radius: 14px;
+    border-bottom-left-radius: 4px;
+  }
+
+  .typing-dots span {
+    width: 6px;
+    height: 6px;
+    background: #aaa;
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-5px); }
+  }
+
+  /* Input area */
+  .chat-input-area {
+    display: flex;
+    gap: 8px;
+    padding: 12px 14px;
+    border-top: 1px solid #f0f0f0;
+    align-items: flex-end;
+  }
+
+  .chat-input {
+    flex: 1;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 9px 14px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    resize: none;
+    min-height: 40px;
+    max-height: 100px;
+    overflow-y: auto;
+    line-height: 1.4;
+    transition: border-color 0.2s;
+    color: #333;
+  }
+  .chat-input:focus { border-color: #6c63ff; }
+
+  .chat-send-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #6c63ff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .chat-send-btn:hover { background: #5a52e0; }
+  .chat-send-btn:active { transform: scale(0.93); }
+  .chat-send-btn svg { width: 16px; height: 16px; fill: #fff; }
+
+  /* Confetti placeholder */
+  .all-done {
+    display: none;
+    text-align: center;
+    padding: 32px;
+    background: linear-gradient(135deg, #f0eeff, #e8f9ff);
+    border-radius: 16px;
+    margin-bottom: 18px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #6c63ff;
+  }
+  .all-done span { font-size: 2rem; display: block; margin-bottom: 8px; }
+
+  @media (max-width: 480px) {
+    .section { padding: 16px; }
+    header h1 { font-size: 1.3rem; }
+  }
+
+  /* Editable section names */
+  .section-title { cursor: pointer; }
+  .section-title:hover { opacity: 0.7; }
+  .section-name-input {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border: 1.5px solid #6c63ff;
+    border-radius: 6px;
+    padding: 2px 6px;
+    outline: none;
+    font-family: inherit;
+    width: 120px;
+  }
+
+  /* Tag picker */
+  .tag-picker-wrap { position: relative; display: inline-flex; flex-shrink: 0; margin-top: 3px; }
+  .tag-btn {
+    background: none;
+    border: 1.5px dashed #ddd;
+    border-radius: 99px;
+    padding: 2px 8px;
+    font-size: 0.68rem;
+    color: #bbb;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tag-btn:hover { border-color: #6c63ff; color: #6c63ff; }
+  .tag-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 50;
+    min-width: 140px;
+  }
+  .tag-dropdown.visible { display: block; }
+  .tag-option {
+    display: block;
+    width: 100%;
+    padding: 6px 10px;
+    border: none;
+    background: none;
+    font-size: 0.8rem;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 6px;
+    color: #333;
+    font-family: inherit;
+  }
+  .tag-option:hover { background: #f4f4f8; }
+  .tag-option.remove { color: #e53935; }
+  .tag-custom-input {
+    width: calc(100% - 12px);
+    border: 1.5px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 0.78rem;
+    outline: none;
+    margin: 4px 6px 2px;
+    font-family: inherit;
+  }
+  .tag-custom-input:focus { border-color: #6c63ff; }
+
+  /* Notes */
+  .notes-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: #bbb;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .notes-btn:hover { color: #6c63ff; background: #f0eeff; }
+  .notes-btn.has-notes { color: #f59e0b; }
+  .notes-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f59e0b;
+  }
+  .notes-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    right: 0;
+    background: #1a1a2e;
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    max-width: 280px;
+    min-width: 180px;
+    z-index: 60;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .notes-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    right: 16px;
+    border: 6px solid transparent;
+    border-top-color: #1a1a2e;
+  }
+  .notes-btn:hover .notes-tooltip { display: block; }
+  .notes-tooltip .note-entry { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.15); }
+  .notes-tooltip .note-entry:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+  .notes-tooltip .note-date { font-size: 0.65rem; color: rgba(255,255,255,0.5); margin-bottom: 2px; }
+
+  /* Notes dialog */
+  .notes-dialog-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .notes-dialog-overlay.visible { display: flex; }
+  .notes-dialog {
+    background: #fff;
+    border-radius: 20px;
+    padding: 24px;
+    max-width: 460px;
+    width: 100%;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+  }
+  .notes-dialog h3 { font-size: 1rem; margin-bottom: 4px; color: #1a1a2e; }
+  .notes-dialog .task-ref { font-size: 0.8rem; color: #888; margin-bottom: 14px; }
+  .notes-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 14px;
+  }
+  .notes-list .note-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.88rem;
+    color: #333;
+  }
+  .notes-list .note-item:last-child { border-bottom: none; }
+  .notes-list .note-item-date { font-size: 0.7rem; color: #aaa; margin-bottom: 2px; }
+  .notes-new-area {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .notes-new-area textarea {
+    flex: 1;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 0.88rem;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    min-height: 50px;
+    transition: border-color 0.2s;
+    color: #333;
+  }
+  .notes-new-area textarea:focus { border-color: #6c63ff; }
+  .notes-new-area button {
+    background: #6c63ff;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .notes-dialog-close {
+    background: #f0f0f0;
+    color: #666;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin-top: 10px;
+    width: 100%;
+  }
+
+  /* Dark mode toggle */
+  .dark-toggle {
+    background: none;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 99px;
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    margin-left: 12px;
+  }
+  .dark-toggle:hover { background: #f0f0f0; }
+
+  /* ── Dark mode ───────────────────────────────────────────── */
+  body.dark { background: #121218; color: #d8d8e0; }
+  body.dark .app { color: #d8d8e0; }
+  body.dark header h1 { color: #f0f0f5; }
+  body.dark header .date { color: #8888a0; }
+  body.dark .progress-bar-wrap { background: #2a2a3a; }
+  body.dark .section { background: #1c1c28; box-shadow: 0 1px 8px rgba(0,0,0,0.4); }
+  body.dark .section-title { color: #aaa !important; }
+  body.dark .section-title.one { color: #9b93ff !important; }
+  body.dark .section-title.two { color: #ff7abf !important; }
+  body.dark .section-title.shared { color: #44ddff !important; }
+  body.dark .todo-item { border-bottom-color: #2c2c3c; }
+  body.dark .todo-text { color: #e0e0e8; }
+  body.dark .todo-item.done .todo-text { color: #6a6a7a; }
+  body.dark .todo-item input[type="checkbox"] { border-color: #555; }
+  body.dark .todo-dates { color: #7a7a90; }
+  body.dark .todo-dates .due { color: #9a9ab0; }
+  body.dark .todo-dates .due.overdue { color: #ff6b6b; }
+  body.dark .todo-dates .due.today { color: #ffb347; }
+  body.dark .todo-dates .completed-date { color: #5cd85c; }
+  body.dark .add-btn { color: #7a7a90; }
+  body.dark .add-btn:hover { color: #9b93ff; }
+  body.dark .add-row input[type="text"],
+  body.dark .add-row input[type="date"] { background: #252535; border-color: #444; color: #ddd; }
+  body.dark .add-row input::placeholder { color: #666; }
+  body.dark .add-row input:focus { border-color: #6c63ff; }
+  body.dark .add-row button { background: #6c63ff; }
+  body.dark .add-row .cancel-btn { background: #333345; color: #bbb; }
+  body.dark .icon-btn { color: #7a7a90; }
+  body.dark .icon-btn:hover { background: #2e2e40; color: #ccc; }
+  body.dark .icon-btn.action-btn:hover { color: #9b93ff; background: #2a2a45; }
+  body.dark .icon-btn.edit-btn:hover { color: #ffb347; background: #302a20; }
+  body.dark .icon-btn.delete-btn:hover { color: #ff6b6b; background: #302025; }
+  body.dark .inline-edit-input { background: #252535; border-color: #6c63ff; color: #eee; }
+  body.dark .inline-save-btn { background: #6c63ff; }
+  body.dark .inline-cancel-btn { background: #333345; color: #bbb; }
+  body.dark .tag { background: #2a2a45; color: #9b93ff; }
+  body.dark .tag.urgent { background: #352035; color: #ff7abf; }
+  body.dark .tag.note { background: #352e20; color: #ffb347; }
+  body.dark .tag-btn { border-color: #4a4a5a; color: #7a7a90; }
+  body.dark .tag-btn:hover { border-color: #9b93ff; color: #9b93ff; }
+  body.dark .tag-dropdown { background: #1e1e2e; border-color: #444; box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+  body.dark .tag-option { color: #ddd; }
+  body.dark .tag-option:hover { background: #2a2a3e; }
+  body.dark .tag-custom-input { background: #252535; border-color: #444; color: #ddd; }
+  body.dark .notes-btn { color: #7a7a90; }
+  body.dark .notes-btn.has-notes { color: #ffb347; }
+  body.dark .notes-tooltip { background: #2a2a3e; box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+  body.dark .notes-tooltip::after { border-top-color: #2a2a3e; }
+  body.dark .notes-tooltip .note-date { color: rgba(255,255,255,0.45); }
+  body.dark .chat-section { background: #1c1c28; box-shadow: 0 1px 8px rgba(0,0,0,0.4); }
+  body.dark .chat-header { background: linear-gradient(135deg, #1e1e30, #1a2535); border-bottom-color: #2c2c3c; }
+  body.dark .chat-header-title { color: #f0f0f5; }
+  body.dark .chat-header-sub { color: #7a7a90; }
+  body.dark .chat-messages { background: #1c1c28; }
+  body.dark .msg.bot .msg-bubble { background: #262638; color: #ddd; }
+  body.dark .msg.user .msg-bubble { background: #6c63ff; }
+  body.dark .msg-time { color: #5a5a6a; }
+  body.dark .chat-input { background: #252535; border-color: #444; color: #ddd; }
+  body.dark .chat-input::placeholder { color: #666; }
+  body.dark .chat-input:focus { border-color: #6c63ff; }
+  body.dark .chat-input-area { border-top-color: #2c2c3c; }
+  body.dark .chip { background: #2a2a45; color: #9b93ff; border-color: #3a3a5a; }
+  body.dark .chip:hover { background: #6c63ff; color: #fff; }
+  body.dark .typing-dots { background: #262638; }
+  body.dark .typing-dots span { background: #7a7a90; }
+  body.dark .action-sheet-overlay { background: rgba(0,0,0,0.6); }
+  body.dark .action-sheet { background: #1e1e2e; }
+  body.dark .action-sheet-item-label { color: #7a7a90; }
+  body.dark .action-sheet-item-text { color: #eee; border-bottom-color: #2c2c3c; }
+  body.dark .action-sheet-prompt-label { color: #aaa; }
+  body.dark .action-sheet-textarea { background: #252535; border-color: #444; color: #ddd; }
+  body.dark .action-sheet-textarea:focus { border-color: #6c63ff; }
+  body.dark .action-quick-chip { background: #2a2a3e; border-color: #444; color: #bbb; }
+  body.dark .action-quick-chip:hover,
+  body.dark .action-quick-chip.selected { background: #6c63ff; color: #fff; border-color: #6c63ff; }
+  body.dark .action-sheet-cancel { background: #333345; color: #bbb; }
+  body.dark .modal-overlay { background: rgba(0,0,0,0.55); }
+  body.dark .modal { background: #1e1e2e; }
+  body.dark .modal h2 { color: #f0f0f5; }
+  body.dark .modal p { color: #bbb; }
+  body.dark .btn-secondary { background: #333345; color: #bbb; }
+  body.dark .notes-dialog-overlay { background: rgba(0,0,0,0.55); }
+  body.dark .notes-dialog { background: #1e1e2e; }
+  body.dark .notes-dialog h3 { color: #f0f0f5; }
+  body.dark .notes-dialog .task-ref { color: #9a9ab0; }
+  body.dark .notes-list .note-item { color: #ddd; border-bottom-color: #2c2c3c; }
+  body.dark .notes-list .note-item-date { color: #7a7a90; }
+  body.dark .notes-new-area textarea { background: #252535; border-color: #444; color: #ddd; }
+  body.dark .notes-new-area textarea::placeholder { color: #666; }
+  body.dark .notes-dialog-close { background: #333345; color: #bbb; }
+  body.dark .all-done { background: linear-gradient(135deg, #1e1e35, #1a2540); color: #9b93ff; }
+  body.dark .dark-toggle { border-color: #4a4a5a; color: #ddd; }
+  body.dark .dark-toggle:hover { background: #2e2e40; }
+  body.dark .section-name-input { background: #252535; color: #eee; border-color: #6c63ff; }
+  body.dark .due-date-wrap label { color: #7a7a90; }
+  body.dark #syncStatus { color: #7a7a90 !important; }
+  body.dark #apiKeyStatus { background: rgba(255,255,255,0.08); color: #9a9ab0; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div>
+      <h1>To Do</h1>
+      <div class="date" id="dateLabel"></div>
+    </div>
+    <div style="text-align:right; margin-left:auto;">
+      <div style="display:flex; align-items:baseline; gap:6px; justify-content:flex-end;">
+        <span style="font-size:1.5rem; font-weight:700; color:#6c63ff;">Today:</span>
+        <span style="font-size:1.5rem; font-weight:700; color:#6c63ff;" id="pctLabel">0%</span>
+      </div>
+      <div id="syncStatus" style="font-size:0.72rem; margin-top:2px; color:#aaa; cursor:default; white-space:nowrap;">◌ Loading…</div>
+    </div>
+  </header>
+
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:28px;">
+    <div class="progress-bar-wrap" style="flex:1; margin-bottom:0;">
+      <div class="progress-bar" id="progressBar" style="width:0%"></div>
+    </div>
+    <button class="dark-toggle" id="darkToggle" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
+  </div>
+
+  <div class="all-done" id="allDone">
+    <span>🎉</span>Everything ticked off — great work today!
+  </div>
+
+  <div id="sectionsContainer"></div>
+
+  <!-- CHAT ASSISTANT -->
+  <div class="chat-section">
+    <div class="chat-header">
+      <div class="chat-avatar">✦</div>
+      <div class="chat-header-info">
+        <div class="chat-header-title">Claude Assistant</div>
+        <div class="chat-header-sub">Ask me to draft, schedule, remind, or action any item</div>
+      </div>
+      <span onclick="clearChat()" title="Clear chat history" style="font-size:0.75rem; cursor:pointer; padding:3px 8px; border-radius:99px; background:rgba(0,0,0,0.05); color:#888; white-space:nowrap;">Clear</span>
+      <span id="apiKeyStatus" onclick="showKeyPrompt()" title="Click to set API key" style="font-size:0.75rem; cursor:pointer; padding:3px 8px; border-radius:99px; background:rgba(0,0,0,0.05); color:#888; white-space:nowrap;">⚪ Offline</span>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input-area">
+      <textarea class="chat-input" id="chatInput" placeholder="Ask me anything about your list..." rows="1"
+        onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="chat-send-btn" onclick="sendChat()" title="Send">
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Action Sheet -->
+<div class="action-sheet-overlay" id="actionSheetOverlay">
+  <div class="action-sheet">
+    <div class="action-sheet-handle"></div>
+    <div class="action-sheet-item-label">Task</div>
+    <div class="action-sheet-item-text" id="asItemText"></div>
+    <div class="action-sheet-prompt-label">What would you like Claude to do with this?</div>
+    <div class="action-sheet-quick" id="asQuickChips"></div>
+    <textarea class="action-sheet-textarea" id="asTextarea" placeholder="Add more context, or just press Send…" rows="3"></textarea>
+    <div class="action-sheet-footer">
+      <button class="action-sheet-cancel" onclick="closeActionSheet()">Cancel</button>
+      <button class="action-sheet-send" onclick="sendActionSheet()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+        Send to Claude
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Notes Dialog -->
+<div class="notes-dialog-overlay" id="notesDialogOverlay">
+  <div class="notes-dialog">
+    <h3>Notes</h3>
+    <div class="task-ref" id="notesTaskRef"></div>
+    <div class="notes-list" id="notesList"></div>
+    <div class="notes-new-area">
+      <textarea id="notesInput" placeholder="Add a note..." rows="2"></textarea>
+      <button onclick="addNote()">Add</button>
+    </div>
+    <button class="notes-dialog-close" onclick="closeNotesDialog()">Close</button>
+  </div>
+</div>
+
+<!-- Action Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">Take action?</h2>
+    <p id="modalBody"></p>
+    <div class="modal-actions">
+      <button class="btn-primary" id="modalYes">Yes, do it</button>
+      <button class="btn-secondary" id="modalNo">Just mark done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+
+const INITIAL_TODOS = {
+  one: [],
+  two: [],
+  shared: []
+};
+
+const STORAGE_KEY  = 'todo_app_data_v1';
+const SECTION_NAMES_KEY = 'todo_section_names_v1';
+const SECTIONS_ORDER = ['one', 'two', 'shared'];
+const SHEETS_URL_STORAGE = 'todo_sheets_url_v1';
+
+function getSheetsUrl() {
+  try { return localStorage.getItem(SHEETS_URL_STORAGE) || ''; } catch(e) { return ''; }
+}
+
+function setSheetsUrl(url) {
+  try { localStorage.setItem(SHEETS_URL_STORAGE, url); } catch(e) {}
+}
+
+// ── Section names ────────────────────────────────────────────────────────────
+
+function loadSectionNames() {
+  try {
+    const saved = localStorage.getItem(SECTION_NAMES_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return { one: 'Section 1', two: 'Section 2', shared: 'Shared' };
+}
+
+function saveSectionNames() {
+  try { localStorage.setItem(SECTION_NAMES_KEY, JSON.stringify(sectionNames)); } catch(e) {}
+  if (typeof pushSectionNamesToSheet === 'function') pushSectionNamesToSheet();
+}
+
+let sectionNames = loadSectionNames();
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+let state        = loadLocalState();
+let pendingCheck = null;
+let syncTimer    = null;
+let syncPending  = false;
+
+function loadLocalState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(INITIAL_TODOS));
+}
+
+function saveLocalState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+// ── Google Sheets sync ────────────────────────────────────────────────────────
+
+function setSyncStatus(status) {
+  // status: 'synced' | 'syncing' | 'error' | 'offline' | 'setup'
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  const map = {
+    synced:  { text: '☁ Synced',       color: '#22c55e', cursor: 'default' },
+    syncing: { text: '↻ Syncing…',     color: '#f59e0b', cursor: 'default' },
+    error:   { text: '⚠ Sync error',   color: '#ef4444', cursor: 'default' },
+    offline: { text: '◌ Local only',    color: '#aaa',    cursor: 'default' },
+    setup:   { text: '⚙ Setup needed', color: '#6c63ff', cursor: 'pointer' },
+  };
+  const s = map[status] || map.offline;
+  el.textContent = s.text;
+  el.style.color = s.color;
+  el.style.cursor = s.cursor;
+  el.onclick = status === 'setup' ? showSheetsUrlPrompt : null;
+}
+
+// Convert flat sheet rows → sectioned state object
+function sheetsToState(todos) {
+  const s = { one: [], two: [], shared: [] };
+  todos.forEach(t => {
+    const sec = t.section && s[t.section] !== undefined ? t.section : 'one';
+    s[sec].push({
+      id:          t.id,
+      text:        t.text,
+      section:     sec,
+      done:        t.done === true || t.done === 'TRUE',
+      tag:         t.tag || null,
+      action:      null,
+      createdAt:   t.createdAt || null,
+      dueDate:     t.dueDate || null,
+      completedAt: t.completedAt || null,
+      notes:       t.notes || null,
+    });
+  });
+  return s;
+}
+
+// Convert sectioned state → flat array for Sheets
+function stateToFlat() {
+  const rows = [];
+  SECTIONS_ORDER.forEach(sec => {
+    state[sec].forEach(item => rows.push({
+      id:          item.id,
+      text:        item.text,
+      section:     sec,
+      done:        item.done,
+      tag:         item.tag || '',
+      createdAt:   item.createdAt || new Date().toISOString(),
+      dueDate:     item.dueDate || '',
+      completedAt: item.completedAt || '',
+      notes:       item.notes || '',
+    }));
+  });
+  return rows;
+}
+
+// Load from Sheets on startup
+async function loadFromSheets() {
+  if (!getSheetsUrl()) { setSyncStatus('setup'); return false; }
+  setSyncStatus('syncing');
+  try {
+    const resp = await fetch(getSheetsUrl(), { method: 'GET' });
+    const data = await resp.json();
+    if (data.ok && Array.isArray(data.todos) && data.todos.length > 0) {
+      state = sheetsToState(data.todos);
+      saveLocalState();
+      render();
+      setSyncStatus('synced');
+      return true;
+    } else if (data.ok && data.todos.length === 0) {
+      // Sheet is empty — push our local data up
+      await pushToSheets();
+    } else {
+      setSyncStatus('error');
+    }
+  } catch(e) {
+    setSyncStatus('offline');
+    console.warn('Sheets load failed, using local cache:', e.message);
+  }
+  return false;
+}
+
+// Push full state to Sheets (debounced)
+async function pushToSheets() {
+  if (!getSheetsUrl()) { setSyncStatus('setup'); return; }
+  setSyncStatus('syncing');
+  try {
+    const resp = await fetch(getSheetsUrl(), {
+      method: 'POST',
+      body: JSON.stringify({ action: 'sync', todos: stateToFlat() }),
+    });
+    const data = await resp.json();
+    setSyncStatus(data.ok ? 'synced' : 'error');
+  } catch(e) {
+    setSyncStatus('error');
+    console.warn('Sheets push failed:', e.message);
+  }
+}
+
+// Auto-cleanup: archive items completed before today to the Done sheet
+function cleanupCompletedItems() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const toArchive = [];
+  let changed = false;
+  SECTIONS_ORDER.forEach(sec => {
+    const before = state[sec].length;
+    const keep = [];
+    state[sec].forEach(item => {
+      if (!item.done || !item.completedAt) { keep.push(item); return; }
+      const completed = new Date(item.completedAt);
+      completed.setHours(0, 0, 0, 0);
+      if (completed >= today) { keep.push(item); }
+      else { toArchive.push({ ...item, section: sec }); }
+    });
+    state[sec] = keep;
+    if (state[sec].length !== before) changed = true;
+  });
+  if (changed) {
+    saveLocalState();
+    render();
+    // Send archived items to Done sheet
+    if (toArchive.length) archiveToDoneSheet(toArchive);
+  }
+}
+
+async function archiveToDoneSheet(items) {
+  if (!getSheetsUrl()) return;
+  try {
+    const rows = items.map(i => ({
+      id: i.id, text: i.text, section: i.section,
+      done: i.done, tag: i.tag || '', createdAt: i.createdAt || '',
+      dueDate: i.dueDate || '', completedAt: i.completedAt || '', notes: i.notes || ''
+    }));
+    await fetch(getSheetsUrl(), {
+      method: 'POST',
+      body: JSON.stringify({ action: 'archive', items: rows }),
+    });
+  } catch(e) {
+    console.warn('Archive to Done sheet failed:', e.message);
+  }
+}
+
+// Sort items: due date ascending (nulls last), then oldest createdAt first
+function sortItems(items) {
+  return items.slice().sort((a, b) => {
+    const aDue = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+    const bDue = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+    if (aDue !== bDue) return aDue - bDue;
+    const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return aCreated - bCreated;
+  });
+}
+
+// Debounced save — waits 800ms after last change before syncing
+function saveState() {
+  saveLocalState();
+  if (!getSheetsUrl()) return;
+  clearTimeout(syncTimer);
+  setSyncStatus('syncing');
+  syncTimer = setTimeout(() => pushToSheets(), 800);
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+function render() {
+  renderSections();
+  updateProgress();
+}
+
+function renderSections() {
+  const container = document.getElementById('sectionsContainer');
+  container.innerHTML = '';
+  SECTIONS_ORDER.forEach(secKey => {
+    const secDiv = document.createElement('div');
+    secDiv.className = 'section';
+    secDiv.id = 'section-' + secKey;
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'section-header';
+
+    const title = document.createElement('span');
+    title.className = 'section-title ' + secKey;
+    title.textContent = sectionNames[secKey] || secKey;
+    title.title = 'Click to rename';
+    title.addEventListener('click', () => startEditSectionName(secKey, title));
+    header.appendChild(title);
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-btn';
+    addBtn.title = 'Add item';
+    addBtn.textContent = '\uFF0B';
+    addBtn.addEventListener('click', () => toggleAdd(secKey));
+    header.appendChild(addBtn);
+    secDiv.appendChild(header);
+
+    // Items list
+    const list = document.createElement('div');
+    list.id = 'list-' + secKey;
+    const sorted = sortItems(state[secKey] || []);
+    sorted.forEach(item => list.appendChild(makeItemEl(secKey, item)));
+    secDiv.appendChild(list);
+
+    // Add row
+    const addRow = document.createElement('div');
+    addRow.className = 'add-row';
+    addRow.id = 'add-' + secKey;
+    addRow.innerHTML = `
+      <input type="text" placeholder="New item..." id="input-${secKey}" onkeydown="handleKey(event,'${secKey}')">
+      <div class="due-date-wrap"><label>Due:</label><input type="date" id="due-${secKey}"></div>
+      <button onclick="addItem('${secKey}')">Add</button>
+      <button class="cancel-btn" onclick="toggleAdd('${secKey}')">✕</button>
+    `;
+    secDiv.appendChild(addRow);
+    container.appendChild(secDiv);
+  });
+}
+
+function startEditSectionName(secKey, titleEl) {
+  const input = document.createElement('input');
+  input.className = 'section-name-input';
+  input.value = sectionNames[secKey] || secKey;
+  titleEl.replaceWith(input);
+  input.focus();
+  input.select();
+  const finish = () => {
+    const val = input.value.trim();
+    if (val) sectionNames[secKey] = val;
+    saveSectionNames();
+    render();
+  };
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') render(); });
+}
+
+function makeItemEl(section, item) {
+  const row = document.createElement('div');
+  row.className = 'todo-item' + (item.done ? ' done' : '') + ' ' + section;
+  row.id = 'item-' + item.id;
+
+  // Checkbox
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.checked = item.done;
+  cb.addEventListener('change', () => onCheck(section, item.id, cb));
+
+  // Label (read mode)
+  const label = document.createElement('div');
+  label.className = 'todo-text';
+  label.textContent = item.text;
+
+  // Inline edit wrapper (edit mode)
+  const editWrap = document.createElement('div');
+  editWrap.className = 'inline-edit-wrap';
+
+  const editInput = document.createElement('input');
+  editInput.className = 'inline-edit-input';
+  editInput.type = 'text';
+  editInput.value = item.text;
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'inline-save-btn';
+  saveBtn.textContent = '✓';
+  saveBtn.title = 'Save';
+
+  const cancelEditBtn = document.createElement('button');
+  cancelEditBtn.className = 'inline-cancel-btn';
+  cancelEditBtn.textContent = '✕';
+  cancelEditBtn.title = 'Cancel';
+
+  const editDueInput = document.createElement('input');
+  editDueInput.type = 'date';
+  editDueInput.className = 'inline-edit-input';
+  editDueInput.style.cssText = 'flex:0 0 auto; width:130px; font-size:0.8rem; padding:4px 6px;';
+  editDueInput.title = 'Due date';
+  if (item.dueDate) {
+    const d = new Date(item.dueDate);
+    editDueInput.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+
+  editWrap.appendChild(editInput);
+  editWrap.appendChild(editDueInput);
+  editWrap.appendChild(saveBtn);
+  editWrap.appendChild(cancelEditBtn);
+
+  const commitEdit = () => {
+    const val = editInput.value.trim();
+    if (val && val !== item.text) {
+      item.text = val;
+      label.textContent = val;
+    }
+    // Update due date
+    if (editDueInput.value) {
+      item.dueDate = new Date(editDueInput.value + 'T00:00:00').toISOString();
+    } else {
+      item.dueDate = null;
+    }
+    saveState();
+    row.classList.remove('editing');
+    editInput.value = item.text;
+    render();
+  };
+
+  const startInlineEdit = () => {
+    if (item.done) return;
+    row.classList.add('editing');
+    editInput.value = item.text;
+    if (item.dueDate) {
+      const d = new Date(item.dueDate);
+      editDueInput.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    } else {
+      editDueInput.value = '';
+    }
+    editInput.focus();
+    editInput.select();
+  };
+
+  saveBtn.addEventListener('click', commitEdit);
+  cancelEditBtn.addEventListener('click', () => { row.classList.remove('editing'); editInput.value = item.text; });
+  editInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') commitEdit();
+    if (e.key === 'Escape') { row.classList.remove('editing'); editInput.value = item.text; }
+  });
+
+  // Action buttons (always visible on hover)
+  const actions = document.createElement('div');
+  actions.className = 'item-actions';
+
+  // ⚡ Action sheet button
+  const actBtn = document.createElement('button');
+  actBtn.className = 'icon-btn action-btn';
+  actBtn.title = 'Ask Claude to action this';
+  actBtn.textContent = '⚡';
+  actBtn.addEventListener('click', () => openActionSheet(section, item.id));
+  actions.appendChild(actBtn);
+
+  // ✏️ Edit button
+  const editBtn = document.createElement('button');
+  editBtn.className = 'icon-btn edit-btn';
+  editBtn.title = 'Edit';
+  editBtn.textContent = '✏️';
+  editBtn.addEventListener('click', startInlineEdit);
+  actions.appendChild(editBtn);
+
+  // ✕ Delete
+  const delBtn = document.createElement('button');
+  delBtn.className = 'icon-btn delete-btn';
+  delBtn.title = 'Delete';
+  delBtn.textContent = '✕';
+  delBtn.addEventListener('click', () => deleteItem(section, item.id));
+  actions.appendChild(delBtn);
+
+  row.appendChild(cb);
+  row.appendChild(label);
+  row.appendChild(editWrap);
+
+  // Notes button (before other actions)
+  const notesBtn = document.createElement('button');
+  notesBtn.className = 'notes-btn icon-btn' + (parseNotes(item.notes).length ? ' has-notes' : '');
+  notesBtn.title = 'Notes (right-click item for quick add)';
+  notesBtn.textContent = '\uD83D\uDCDD';
+  notesBtn.addEventListener('click', (e) => { e.stopPropagation(); openNotesDialog(section, item.id); });
+  // Tooltip for existing notes
+  const existingNotes = parseNotes(item.notes);
+  if (existingNotes.length) {
+    const badge = document.createElement('span');
+    badge.className = 'notes-badge';
+    notesBtn.appendChild(badge);
+    const tooltip = document.createElement('div');
+    tooltip.className = 'notes-tooltip';
+    tooltip.innerHTML = existingNotes.map(n =>
+      `<div class="note-entry"><div class="note-date">${formatDateShort(n.date)}</div>${escHtml(n.text)}</div>`
+    ).join('');
+    notesBtn.appendChild(tooltip);
+  }
+  actions.insertBefore(notesBtn, actions.firstChild);
+
+  row.appendChild(actions);
+
+  // Tag picker (replaces static tag display)
+  const tagWrap = document.createElement('div');
+  tagWrap.className = 'tag-picker-wrap';
+  if (item.tag) {
+    const tagEl = document.createElement('span');
+    tagEl.className = 'tag ' + (item.tag === 'urgent' ? 'urgent' : item.tag === 'note' ? 'note' : '');
+    tagEl.textContent = item.tag;
+    tagEl.style.cursor = 'pointer';
+    tagEl.addEventListener('click', (e) => { e.stopPropagation(); toggleTagPicker(tagWrap, section, item.id); });
+    tagWrap.appendChild(tagEl);
+  } else {
+    const tagBtn = document.createElement('button');
+    tagBtn.className = 'tag-btn';
+    tagBtn.textContent = '+ tag';
+    tagBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleTagPicker(tagWrap, section, item.id); });
+    tagWrap.appendChild(tagBtn);
+  }
+  row.insertBefore(tagWrap, actions);
+
+  // Right-click for notes
+  row.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    openNotesDialog(section, item.id);
+  });
+
+  // Date row
+  const dateParts = [];
+  if (item.createdAt) {
+    dateParts.push('Created ' + formatDateShort(item.createdAt));
+  }
+  if (item.dueDate) {
+    const dueClass = getDueClass(item.dueDate, item.done);
+    dateParts.push(`<span class="due ${dueClass}">Due ${formatDateShort(item.dueDate)}</span>`);
+  }
+  if (item.completedAt) {
+    dateParts.push(`<span class="completed-date">Done ${formatDateShort(item.completedAt)}</span>`);
+  }
+  if (dateParts.length) {
+    const dates = document.createElement('div');
+    dates.className = 'todo-dates';
+    dates.innerHTML = dateParts.join('<span style="color:#ddd">\u00B7</span>');
+    row.appendChild(dates);
+  }
+
+  return row;
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function formatDateShort(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+function getDueClass(dueISO, done) {
+  if (done) return '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due = new Date(dueISO); due.setHours(0,0,0,0);
+  if (due < today) return 'overdue';
+  if (due.getTime() === today.getTime()) return 'today';
+  return '';
+}
+
+// ── Interactions ──────────────────────────────────────────────────────────────
+
+function onCheck(section, id, cb) {
+  const item = findItem(section, id);
+  if (!item) return;
+
+  if (cb.checked && item.action) {
+    markDone(section, id, true);
+    // Small delay so checkbox animates first
+    setTimeout(() => openActionSheet(section, id), 150);
+  } else if (!cb.checked) {
+    markDone(section, id, false);
+  } else {
+    markDone(section, id, true);
+  }
+}
+
+function markDone(section, id, done) {
+  const item = findItem(section, id);
+  if (!item) return;
+  item.done = done;
+  item.completedAt = done ? new Date().toISOString() : null;
+  saveState();
+  const row = document.getElementById('item-' + id);
+  if (row) {
+    row.className = 'todo-item' + (done ? ' done' : '') + ' ' + section;
+    const cb = row.querySelector('input[type="checkbox"]');
+    if (cb) cb.checked = done;
+  }
+  updateProgress();
+}
+
+function showActionPrompt(item) {
+  openActionSheet(item.section, item.id);
+}
+
+// ── Tag Picker ───────────────────────────────────────────────────────────────
+
+const PRESET_TAGS = ['urgent', 'note', 'waiting', 'low'];
+
+function toggleTagPicker(wrapEl, section, id) {
+  // Close any open pickers
+  document.querySelectorAll('.tag-dropdown.visible').forEach(d => d.classList.remove('visible'));
+
+  let dropdown = wrapEl.querySelector('.tag-dropdown');
+  if (dropdown) { dropdown.classList.toggle('visible'); return; }
+
+  dropdown = document.createElement('div');
+  dropdown.className = 'tag-dropdown visible';
+
+  PRESET_TAGS.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'tag-option';
+    btn.textContent = t;
+    btn.addEventListener('click', () => { setTag(section, id, t); dropdown.remove(); });
+    dropdown.appendChild(btn);
+  });
+
+  // Custom input
+  const customInput = document.createElement('input');
+  customInput.className = 'tag-custom-input';
+  customInput.placeholder = 'Custom tag...';
+  customInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const val = customInput.value.trim();
+      if (val) { setTag(section, id, val); dropdown.remove(); }
+    }
+    if (e.key === 'Escape') dropdown.remove();
+  });
+  dropdown.appendChild(customInput);
+
+  // Remove tag option
+  const item = findItem(section, id);
+  if (item && item.tag) {
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'tag-option remove';
+    removeBtn.textContent = '\u2715 Remove tag';
+    removeBtn.addEventListener('click', () => { setTag(section, id, null); dropdown.remove(); });
+    dropdown.appendChild(removeBtn);
+  }
+
+  wrapEl.appendChild(dropdown);
+
+  // Close on outside click
+  setTimeout(() => {
+    const close = (e) => { if (!dropdown.contains(e.target)) { dropdown.remove(); document.removeEventListener('click', close); } };
+    document.addEventListener('click', close);
+  }, 10);
+}
+
+function setTag(section, id, tag) {
+  const item = findItem(section, id);
+  if (!item) return;
+  item.tag = tag;
+  saveState();
+  render();
+}
+
+// ── Notes ────────────────────────────────────────────────────────────────────
+
+let notesContext = null; // { section, id }
+
+function parseNotes(notesStr) {
+  if (!notesStr) return [];
+  try { return JSON.parse(notesStr); } catch(e) { return []; }
+}
+
+function stringifyNotes(notesArr) {
+  return JSON.stringify(notesArr);
+}
+
+function openNotesDialog(section, id) {
+  const item = findItem(section, id);
+  if (!item) return;
+  notesContext = { section, id };
+
+  document.getElementById('notesTaskRef').textContent = item.text;
+
+  const notesList = document.getElementById('notesList');
+  const notes = parseNotes(item.notes);
+  notesList.innerHTML = notes.length
+    ? notes.map(n => `<div class="note-item"><div class="note-item-date">${formatDateShort(n.date)}</div>${escHtml(n.text)}</div>`).join('')
+    : '<div style="color:#aaa; font-size:0.85rem; padding:8px 0;">No notes yet</div>';
+
+  document.getElementById('notesInput').value = '';
+  document.getElementById('notesDialogOverlay').classList.add('visible');
+  setTimeout(() => document.getElementById('notesInput').focus(), 100);
+}
+
+function closeNotesDialog() {
+  document.getElementById('notesDialogOverlay').classList.remove('visible');
+  notesContext = null;
+}
+
+document.getElementById('notesDialogOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('notesDialogOverlay')) closeNotesDialog();
+});
+
+function addNote() {
+  if (!notesContext) return;
+  const input = document.getElementById('notesInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const item = findItem(notesContext.section, notesContext.id);
+  if (!item) return;
+
+  const notes = parseNotes(item.notes);
+  notes.push({ text, date: new Date().toISOString() });
+  item.notes = stringifyNotes(notes);
+  saveState();
+
+  // Refresh dialog
+  openNotesDialog(notesContext.section, notesContext.id);
+  render();
+}
+
+// ── Action Sheet ──────────────────────────────────────────────────────────────
+
+let actionSheetContext = null; // { section, id }
+
+const QUICK_PROMPTS = {
+  default: ['Draft a message', 'Write an email', 'Remind me later', 'Help me prioritise this', 'What do I need for this?'],
+  one: ['Draft an email', 'Write a follow-up', 'Schedule a reminder'],
+  two: ['Draft a message', 'Summarise what\'s needed', 'Create an action plan'],
+  shared: ['Draft a group message', 'Write a plan', 'Break this into steps'],
+};
+
+function openActionSheet(section, id) {
+  const item = findItem(section, id);
+  if (!item) return;
+
+  actionSheetContext = { section, id };
+
+  document.getElementById('asItemText').textContent = item.text;
+
+  // Populate quick chips
+  const chipsEl = document.getElementById('asQuickChips');
+  chipsEl.innerHTML = '';
+  const prompts = [...(QUICK_PROMPTS[section] || []), ...QUICK_PROMPTS.default].slice(0, 5);
+  prompts.forEach(p => {
+    const chip = document.createElement('button');
+    chip.className = 'action-quick-chip';
+    chip.textContent = p;
+    chip.addEventListener('click', () => {
+      // Toggle selection — clicking a chip fills the textarea
+      document.querySelectorAll('.action-quick-chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      document.getElementById('asTextarea').value = p;
+    });
+    chipsEl.appendChild(chip);
+  });
+
+  document.getElementById('asTextarea').value = '';
+  document.getElementById('actionSheetOverlay').classList.add('visible');
+  setTimeout(() => document.getElementById('asTextarea').focus(), 200);
+}
+
+function closeActionSheet() {
+  document.getElementById('actionSheetOverlay').classList.remove('visible');
+  actionSheetContext = null;
+}
+
+function sendActionSheet() {
+  if (!actionSheetContext) return;
+  const { section, id } = actionSheetContext;
+  const item = findItem(section, id);
+  if (!item) return;
+
+  const userNote = document.getElementById('asTextarea').value.trim();
+  closeActionSheet();
+
+  // Scroll chat into view
+  document.querySelector('.chat-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Build a rich, context-aware message for Claude
+  const allTodos = getAllTodos();
+  const pending = allTodos.filter(i => !i.done && i.id !== id);
+  const contextMsg = [
+    `I'm working on this task: "${item.text}" (${section.toUpperCase()}'s list).`,
+    userNote ? `My note: ${userNote}` : '',
+    `Other pending items for context: ${pending.slice(0,4).map(i => i.text).join(', ')}${pending.length > 4 ? '…' : ''}.`,
+  ].filter(Boolean).join(' ');
+
+  setTimeout(() => submitChat(contextMsg), 300);
+}
+
+// Close action sheet on backdrop click
+document.getElementById('actionSheetOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('actionSheetOverlay')) closeActionSheet();
+});
+
+function deleteItem(section, id) {
+  state[section] = state[section].filter(i => i.id !== id);
+  saveState();
+  render();
+}
+
+function startEdit(section, id, label) {
+  const item = findItem(section, id);
+  if (!item || item.done) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = item.text;
+  input.style.cssText = 'flex:1; border:1.5px solid #6c63ff; border-radius:6px; padding:4px 8px; font-size:0.93rem; outline:none; width:100%;';
+  label.replaceWith(input);
+  input.focus();
+  const finish = () => {
+    item.text = input.value.trim() || item.text;
+    saveState();
+    render();
+  };
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = item.text; input.blur(); }});
+}
+
+function todayDateStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function toggleAdd(section) {
+  const row = document.getElementById('add-' + section);
+  const visible = row.classList.toggle('visible');
+  if (visible) {
+    document.getElementById('input-' + section).focus();
+    const dueInput = document.getElementById('due-' + section);
+    if (dueInput && !dueInput.value) dueInput.value = todayDateStr();
+  }
+}
+
+function handleKey(e, section) {
+  if (e.key === 'Enter') addItem(section);
+  if (e.key === 'Escape') toggleAdd(section);
+}
+
+function addItem(section) {
+  const input = document.getElementById('input-' + section);
+  const text = input.value.trim();
+  if (!text) return;
+  const id = section[0] + Date.now();
+  const dueInput = document.getElementById('due-' + section);
+  const dueDate = dueInput && dueInput.value ? new Date(dueInput.value + 'T00:00:00').toISOString() : null;
+  state[section].push({ id, text, section, done: false, tag: null, action: null, createdAt: new Date().toISOString(), dueDate, completedAt: null, notes: null });
+  saveState();
+  input.value = '';
+  if (dueInput) dueInput.value = '';
+  render();
+  toggleAdd(section);
+}
+
+function findItem(section, id) {
+  return state[section].find(i => i.id === id);
+}
+
+// ── Progress ──────────────────────────────────────────────────────────────────
+
+function updateProgress() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const all = [...state.one, ...state.two, ...state.shared];
+  // Only count items with a due date of today
+  const todayItems = all.filter(i => {
+    if (!i.dueDate) return false;
+    const due = new Date(i.dueDate);
+    due.setHours(0, 0, 0, 0);
+    return due.getTime() === today.getTime();
+  });
+  const done = todayItems.filter(i => i.done).length;
+  const pct = todayItems.length ? Math.round((done / todayItems.length) * 100) : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('pctLabel').textContent = pct + '%';
+  document.getElementById('allDone').style.display = (pct === 100 && todayItems.length > 0) ? 'block' : 'none';
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+
+function showModal(title, body) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').textContent = body;
+  document.getElementById('modalYes').textContent = 'Yes, do it';
+  document.getElementById('modalNo').textContent = 'Just mark done';
+  document.getElementById('modalOverlay').classList.add('visible');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('visible');
+}
+
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+
+const CHAT_KEY = 'todo_chat_v1';
+let chatHistory = [];
+
+try {
+  const saved = localStorage.getItem(CHAT_KEY);
+  if (saved) chatHistory = JSON.parse(saved);
+} catch(e) {}
+
+function saveChat() {
+  try { localStorage.setItem(CHAT_KEY, JSON.stringify(chatHistory.slice(-60))); } catch(e) {}
+}
+
+function clearChat() {
+  chatHistory = [];
+  try { localStorage.removeItem(CHAT_KEY); } catch(e) {}
+  document.getElementById('chatMessages').innerHTML = '';
+  const pending = getPending();
+  appendMsg('bot',
+    `Chat cleared! You have ${pending.length} items on the list. How can I help?`,
+    ['Show pending items', 'Help me prioritise']
+  );
+}
+
+function timeStr() {
+  const d = new Date();
+  return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+}
+
+function appendMsg(role, text, chips) {
+  const msgs = document.getElementById('chatMessages');
+
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + role;
+
+  if (role === 'bot') {
+    const av = document.createElement('div');
+    av.className = 'msg-avatar';
+    av.textContent = '✦';
+    wrap.appendChild(av);
+  }
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.textContent = text;
+
+  const t = document.createElement('div');
+  t.className = 'msg-time';
+  t.textContent = timeStr();
+
+  if (role === 'user') {
+    wrap.appendChild(t);
+    wrap.appendChild(bubble);
+  } else {
+    wrap.appendChild(bubble);
+    wrap.appendChild(t);
+  }
+
+  msgs.appendChild(wrap);
+
+  if (chips && chips.length) {
+    const row = document.createElement('div');
+    row.className = 'chip-row';
+    chips.forEach(c => {
+      const chip = document.createElement('button');
+      chip.className = 'chip';
+      chip.textContent = c;
+      chip.onclick = () => { row.remove(); submitChat(c); };
+      row.appendChild(chip);
+    });
+    msgs.appendChild(row);
+  }
+
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('chatMessages');
+  const el = document.createElement('div');
+  el.className = 'typing-indicator';
+  el.id = 'typingIndicator';
+  const av = document.createElement('div');
+  av.className = 'msg-avatar';
+  av.textContent = '✦';
+  const dots = document.createElement('div');
+  dots.className = 'typing-dots';
+  dots.innerHTML = '<span></span><span></span><span></span>';
+  el.appendChild(av);
+  el.appendChild(dots);
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function hideTyping() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+// ── API Key management ────────────────────────────────────────────────────────
+
+const API_KEY_STORAGE = 'claude_api_key_v1';
+
+function getApiKey() {
+  try { return localStorage.getItem(API_KEY_STORAGE) || ''; } catch(e) { return ''; }
+}
+
+function setApiKey(key) {
+  try { localStorage.setItem(API_KEY_STORAGE, key); } catch(e) {}
+}
+
+// ── System prompt builder ─────────────────────────────────────────────────────
+
+function buildSystemPrompt() {
+  const all = getAllTodos();
+  const pending = all.filter(i => !i.done);
+  const done = all.filter(i => i.done);
+  const today = new Date().toLocaleDateString('en-ZA', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  const fmt = items => items.length
+    ? items.map(i => `  - [${i.section.toUpperCase()}] ${i.text}${i.tag ? ' (' + i.tag + ')' : ''}`).join('\n')
+    : '  (none)';
+
+  const sectionList = SECTIONS_ORDER.map(k => `${k} ("${sectionNames[k]}")`).join(', ');
+
+  return `You are a helpful assistant embedded in a shared todo app. Today is ${today}.
+
+CONTEXT:
+- This is a shared task management app with sections: ${sectionList}.
+- You have full visibility of the todo list and can manage it directly.
+
+TODAY'S TODO LIST:
+Pending (${pending.length}):
+${fmt(pending)}
+
+Completed (${done.length}):
+${fmt(done)}
+
+YOUR CAPABILITIES:
+You can take real actions on the todo list. When the user asks you to:
+- ADD an item: respond with JSON action {"action":"add","section":"one|two|shared","text":"..."}
+- MARK DONE: respond with JSON action {"action":"done","id":"item-id"} — match by text if no ID
+- DELETE an item: respond with JSON action {"action":"delete","id":"item-id"}
+- CLEAR completed: respond with JSON action {"action":"clearDone"}
+
+For actions, embed the JSON on its own line wrapped in <action> tags like:
+<action>{"action":"add","section":"one","text":"Call supplier"}</action>
+
+Then continue with a natural response. You can take multiple actions in one reply.
+
+PERSONALITY:
+- Warm, efficient, concise
+- Keep responses concise unless drafting documents
+- Suggest quick-action chips at the end of replies using this format (max 3):
+<chips>["Chip 1","Chip 2","Chip 3"]</chips>
+- For drafts (promos, emails, messages): produce complete, ready-to-use text
+- Always be aware of the current list state when answering`;
+}
+
+// ── Claude API call ───────────────────────────────────────────────────────────
+
+async function callClaude(userText) {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error('NO_KEY');
+
+  // Build messages array from recent history (last 20 turns)
+  // Sanitise: ensure alternating roles starting with user
+  const recent = chatHistory.slice(-20);
+  const messages = [];
+  recent.forEach(m => {
+    const role = m.role === 'bot' ? 'assistant' : 'user';
+    if (messages.length && messages[messages.length - 1].role === role) return; // skip consecutive same-role
+    messages.push({ role, content: m.text });
+  });
+  // Ensure first message is from user
+  while (messages.length && messages[0].role === 'assistant') messages.shift();
+  messages.push({ role: 'user', content: userText });
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      system: buildSystemPrompt(),
+      messages
+    })
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `API error ${resp.status}`);
+  }
+
+  const data = await resp.json();
+  return data.content[0].text;
+}
+
+// ── Parse Claude's structured response ───────────────────────────────────────
+
+function parseClaudeResponse(raw) {
+  let text = raw;
+  const actions = [];
+  let chips = [];
+
+  // Extract <action> blocks
+  const actionMatches = [...text.matchAll(/<action>([\s\S]*?)<\/action>/g)];
+  actionMatches.forEach(m => {
+    try { actions.push(JSON.parse(m[1].trim())); } catch(e) {}
+    text = text.replace(m[0], '');
+  });
+
+  // Extract <chips> block
+  const chipsMatch = text.match(/<chips>([\s\S]*?)<\/chips>/);
+  if (chipsMatch) {
+    try { chips = JSON.parse(chipsMatch[1].trim()); } catch(e) {}
+    text = text.replace(chipsMatch[0], '');
+  }
+
+  text = text.trim();
+
+  // Execute actions
+  actions.forEach(act => {
+    if (act.action === 'add' && act.section && act.text) {
+      const id = act.section[0] + Date.now() + Math.random().toString(36).slice(2,5);
+      if (state[act.section]) {
+        state[act.section].push({ id, text: act.text, done: false, tag: null, action: null, createdAt: new Date().toISOString(), dueDate: act.dueDate || null, completedAt: null, notes: null });
+        saveState(); render();
+      }
+    } else if (act.action === 'done' && act.id) {
+      // Try by id first, then by text match
+      SECTIONS_ORDER.forEach(sec => {
+        const item = state[sec].find(i => i.id === act.id || i.text.toLowerCase().includes((act.text||'').toLowerCase().slice(0,12)));
+        if (item) { markDone(sec, item.id, true); }
+      });
+    } else if (act.action === 'delete' && act.id) {
+      SECTIONS_ORDER.forEach(sec => {
+        state[sec] = state[sec].filter(i => i.id !== act.id);
+      });
+      saveState(); render();
+    } else if (act.action === 'clearDone') {
+      SECTIONS_ORDER.forEach(sec => { state[sec] = state[sec].filter(i => !i.done); });
+      saveState(); render();
+    }
+  });
+
+  return { text, chips: chips.slice(0,3) };
+}
+
+// ── Send / submit ─────────────────────────────────────────────────────────────
+
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  input.style.height = 'auto';
+  submitChat(text);
+}
+
+async function submitChat(text) {
+  appendMsg('user', text);
+  chatHistory.push({ role: 'user', text });
+  showTyping();
+
+  try {
+    const raw = await callClaude(text);
+    hideTyping();
+    const { text: reply, chips } = parseClaudeResponse(raw);
+    appendMsg('bot', reply, chips);
+    chatHistory.push({ role: 'bot', text: reply });
+    saveChat();
+  } catch(err) {
+    hideTyping();
+    if (err.message === 'NO_KEY') {
+      showKeyPrompt();
+    } else {
+      // Fallback to local engine on API failure
+      console.warn('Claude API error, using fallback:', err.message);
+      const { reply, chips } = generateReply(text);
+      appendMsg('bot', reply + '\n\n_(offline mode — ' + err.message + ')_', chips);
+      chatHistory.push({ role: 'bot', text: reply });
+      saveChat();
+    }
+  }
+}
+
+// ── API Key prompt ────────────────────────────────────────────────────────────
+
+function showKeyPrompt() {
+  showModal('Enter your Claude API Key', 'Paste your Anthropic API key to enable live AI responses. It will be stored only in your browser.');
+  // Swap modal content
+  const body = document.querySelector('.modal p');
+  const actions = document.querySelector('.modal-actions');
+  body.innerHTML = `
+    <input id="apiKeyInput" type="password" placeholder="sk-ant-api03-..." style="
+      width:100%; border:1.5px solid #e0e0e0; border-radius:8px;
+      padding:9px 12px; font-size:0.9rem; outline:none; margin-bottom:8px; font-family:monospace;
+    ">
+    <div style="font-size:0.78rem; color:#aaa;">Get yours at <a href="https://console.anthropic.com" target="_blank" style="color:#6c63ff">console.anthropic.com</a> → API Keys</div>
+  `;
+  document.getElementById('modalYes').textContent = 'Save & Connect';
+  document.getElementById('modalNo').textContent = 'Cancel';
+  document.getElementById('modalYes').onclick = () => {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (key.startsWith('sk-ant-')) {
+      setApiKey(key);
+      closeModal();
+      updateKeyIndicator();
+      appendMsg('bot', 'API key saved! I\'m now connected to Claude. Ask me anything about your todo list — I can draft messages, manage tasks, and more.', ['Show pending items', 'Draft a promo', 'Help me prioritise']);
+    } else {
+      document.getElementById('apiKeyInput').style.borderColor = '#e53935';
+    }
+  };
+  document.getElementById('modalNo').onclick = () => {
+    closeModal();
+    // restore modal defaults
+    resetModal();
+  };
+  setTimeout(() => document.getElementById('apiKeyInput')?.focus(), 100);
+}
+
+function resetModal() {
+  document.querySelector('.modal p').textContent = '';
+  document.getElementById('modalYes').textContent = 'Yes, do it';
+  document.getElementById('modalNo').textContent = 'Just mark done';
+}
+
+function updateKeyIndicator() {
+  const key = getApiKey();
+  const el = document.getElementById('apiKeyStatus');
+  if (!el) return;
+  el.textContent = key ? '🟢 Live' : '⚪ Offline';
+  el.title = key ? 'Connected to Claude API — click to update key' : 'No API key — click to add one';
+}
+
+// ── Sheets URL prompt ────────────────────────────────────────────────────────
+
+function showSheetsUrlPrompt() {
+  showModal('Connect to Google Sheets', 'Paste your Apps Script deployment URL to sync your tasks.');
+  const body = document.querySelector('.modal p');
+  body.innerHTML = `
+    <input id="sheetsUrlInput" type="url" placeholder="https://script.google.com/macros/s/…/exec" style="
+      width:100%; border:1.5px solid #e0e0e0; border-radius:8px;
+      padding:9px 12px; font-size:0.85rem; outline:none; margin-bottom:8px; font-family:monospace;
+    " value="${getSheetsUrl()}">
+    <div style="font-size:0.78rem; color:#aaa;">Deploy <code>TodoAppScript.gs</code> as a Web App, then paste the URL here. See the README for setup steps.</div>
+  `;
+  document.getElementById('modalYes').textContent = 'Save & Connect';
+  document.getElementById('modalNo').textContent = 'Cancel';
+  document.getElementById('modalYes').onclick = () => {
+    const url = document.getElementById('sheetsUrlInput').value.trim();
+    if (url.startsWith('https://script.google.com/')) {
+      setSheetsUrl(url);
+      closeModal();
+      resetModal();
+      loadFromSheets().then(() => { cleanupCompletedItems(); render(); });
+      loadSectionNamesFromSheet();
+    } else {
+      document.getElementById('sheetsUrlInput').style.borderColor = '#e53935';
+    }
+  };
+  document.getElementById('modalNo').onclick = () => { closeModal(); resetModal(); };
+  setTimeout(() => document.getElementById('sheetsUrlInput')?.focus(), 100);
+}
+
+// ── Smart reply engine ────────────────────────────────────────────────────────
+
+function getAllTodos() {
+  const all = [];
+  SECTIONS_ORDER.forEach(sec => {
+    state[sec].forEach(item => all.push({ ...item, section: sec }));
+  });
+  return all;
+}
+
+function getPending() {
+  return getAllTodos().filter(i => !i.done);
+}
+
+function getDone() {
+  return getAllTodos().filter(i => i.done);
+}
+
+function todoListText(items) {
+  return items.map((i,n) => `${n+1}. [${i.section.toUpperCase()}] ${i.text}`).join('\n');
+}
+
+function generateReply(msg) {
+  const m = msg.toLowerCase();
+  const pending = getPending();
+  const done = getDone();
+  const all = getAllTodos();
+  const sectionList = SECTIONS_ORDER.map(k => sectionNames[k]).join(' / ');
+
+  // ── Status / summary ──
+  if (/\b(status|summary|how many|progress|left|remaining|overview)\b/.test(m)) {
+    const pct = all.length ? Math.round((done.length / all.length) * 100) : 0;
+    return {
+      reply: `You're ${pct}% through today's list.\n\n✅ Done: ${done.length}\n⏳ Still to do: ${pending.length}\n\nPending items:\n${todoListText(pending)}`,
+      chips: pending.length ? ['Draft an action plan', 'Which is most urgent?'] : []
+    };
+  }
+
+  // ── List pending ──
+  if (/\b(what('s| is) (left|pending|remaining|still|next)|pending|to.?do|not done)\b/.test(m)) {
+    if (!pending.length) return { reply: "Everything's ticked off — great work! 🎉", chips: [] };
+    return {
+      reply: `Here's what's still pending:\n\n${todoListText(pending)}`,
+      chips: ['Help me prioritise', 'Draft a message']
+    };
+  }
+
+  // ── Add item ──
+  if (/\b(add|create|new item|put|append)\b/.test(m)) {
+    // Try to match a section name from the message
+    const secRegex = new RegExp(`\\b(${Object.values(sectionNames).join('|')})\\b`, 'i');
+    const secMatch = msg.match(secRegex);
+    const clean = msg.replace(/^(add|create|new item|put|append)\s+(to\s+\S+)?\s*/i,'').trim();
+    if (clean.length > 2) {
+      let section = SECTIONS_ORDER[0];
+      if (secMatch) {
+        const matched = secMatch[1].toLowerCase();
+        SECTIONS_ORDER.forEach(k => { if (sectionNames[k].toLowerCase() === matched) section = k; });
+      }
+      const id = section[0] + Date.now();
+      state[section].push({ id, text: clean, done: false, tag: null, action: null, createdAt: new Date().toISOString(), dueDate: null, completedAt: null, notes: null });
+      saveState(); render();
+      return { reply: `Added "${clean}" to ${sectionNames[section]}. ✓`, chips: ['What else is pending?'] };
+    }
+    return { reply: `Sure — what would you like to add, and to which section (${sectionList})?`, chips: [] };
+  }
+
+  // ── Mark done ──
+  if (/\b(mark|tick|complete|done|finished|check off)\b/.test(m)) {
+    const match = pending.find(i => m.includes(i.text.toLowerCase().slice(0,12).toLowerCase()));
+    if (match) {
+      markDone(match.section, match.id, true);
+      return { reply: `Marked "${match.text}" as done. ✓`, chips: ['What\'s still left?'] };
+    }
+    return { reply: "Which item would you like to mark done? You can say part of the item name.", chips: pending.slice(0,3).map(i => 'Done: ' + i.text.slice(0,28)) };
+  }
+
+  // ── Draft message ──
+  if (/\b(draft|write|compose)\b/.test(m) && /\b(message|email|follow.?up|letter|note)\b/.test(m)) {
+    return {
+      reply: `I'd be happy to draft that for you! Could you tell me:\n\n1. Who is it for?\n2. What's the main point / request?\n3. Tone — formal, friendly, or urgent?\n\nOr just give me the gist and I'll write something up.`,
+      chips: ['Make it formal', 'Keep it casual', 'Add urgency']
+    };
+  }
+
+  // ── Prioritise ──
+  if (/\b(priorit|urgent|important|most critical|focus)\b/.test(m)) {
+    const urgent = pending.filter(i => i.tag === 'urgent');
+    const top = pending.slice(0,3);
+    return {
+      reply: urgent.length
+        ? `Urgent items:\n${todoListText(urgent)}\n\nOther top priorities:\n${todoListText(top.filter(i => !urgent.includes(i)).slice(0,3))}`
+        : `Based on your list, I'd focus on:\n\n${todoListText(top)}\n\nShall I help with any of these?`,
+      chips: top.slice(0,2).map(i => 'Help with: ' + i.text.slice(0,25))
+    };
+  }
+
+  // ── Clear done ──
+  if (/\b(clear|remove|hide|archive)\s+(done|completed|finished)\b/.test(m)) {
+    SECTIONS_ORDER.forEach(sec => { state[sec] = state[sec].filter(i => !i.done); });
+    saveState(); render();
+    return { reply: 'Cleared all completed items from the list. Fresh start! ✓', chips: ['Show what\'s left'] };
+  }
+
+  // ── Hello / greet ──
+  if (/^(hi|hello|hey|morning|good morning|howzit|yo)\b/.test(m)) {
+    const greet = pending.length
+      ? `Hey! You've got ${pending.length} items still to do today. Want a quick rundown or shall we tackle something specific?`
+      : `Hey! Looks like you've cleared your list — well done! Anything else I can help with?`;
+    return { reply: greet, chips: pending.length ? ['Show pending items', 'Help me prioritise'] : ['Add a new item'] };
+  }
+
+  // ── Help ──
+  if (/\b(help|what can you|commands|options)\b/.test(m)) {
+    return {
+      reply: `Here's what I can do:\n\n• Show your pending or completed items\n• Add items to any section (${sectionList})\n• Mark items as done\n• Draft messages, emails, follow-ups\n• Prioritise your list\n• Clear completed items\n• Give you a progress summary\n\nJust ask in plain English!`,
+      chips: ['Show pending', 'Add an item', 'Prioritise my list']
+    };
+  }
+
+  // ── Default ──
+  return {
+    reply: `I heard you — "${msg}"\n\nI can help you draft messages, manage your todo list, prioritise tasks, or handle follow-ups. Try asking me something like:\n• "What's still pending?"\n• "Add buy milk to ${sectionNames[SECTIONS_ORDER[0]]}"\n• "Draft a follow-up email"\n• "Help me prioritise"`,
+    chips: ['Show pending items', 'Add an item', 'Help me prioritise']
+  };
+}
+
+// ── Boot chat ─────────────────────────────────────────────────────────────────
+
+function initChat() {
+  const msgs = document.getElementById('chatMessages');
+  if (chatHistory.length) {
+    chatHistory.forEach(m => appendMsg(m.role, m.text));
+  } else {
+    const pending = getPending();
+    appendMsg('bot',
+      `Hi there! 👋 I'm your task assistant.\n\n${pending.length ? `You have ${pending.length} items on the list.` : 'Your list is empty — add some tasks to get started.'} I can help you draft messages, manage items, prioritise, or plan — just ask!`,
+      ['Show pending items', 'Help me prioritise', 'What can you do?']
+    );
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ── Date ──────────────────────────────────────────────────────────────────────
+
+const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const now = new Date();
+document.getElementById('dateLabel').textContent =
+  days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+
+// ── Dark mode ────────────────────────────────────────────────────────────────
+
+const DARK_KEY = 'todo_dark_mode';
+
+function initDarkMode() {
+  const saved = localStorage.getItem(DARK_KEY);
+  if (saved === 'true') document.body.classList.add('dark');
+  updateDarkToggle();
+}
+
+function toggleDarkMode() {
+  document.body.classList.toggle('dark');
+  const isDark = document.body.classList.contains('dark');
+  localStorage.setItem(DARK_KEY, isDark);
+  updateDarkToggle();
+}
+
+function updateDarkToggle() {
+  const btn = document.getElementById('darkToggle');
+  if (btn) btn.textContent = document.body.classList.contains('dark') ? '\u2600\uFE0F' : '\uD83C\uDF19';
+}
+
+// ── Section names sync ───────────────────────────────────────────────────────
+
+async function loadSectionNamesFromSheet() {
+  if (!getSheetsUrl()) return;
+  try {
+    const resp = await fetch(getSheetsUrl() + '?config=sectionNames');
+    const data = await resp.json();
+    if (data.ok && data.config && data.config.sectionNames) {
+      sectionNames = data.config.sectionNames;
+      saveSectionNames();
+      render();
+    }
+  } catch(e) { console.warn('Config load failed:', e.message); }
+}
+
+async function pushSectionNamesToSheet() {
+  if (!getSheetsUrl()) return;
+  try {
+    await fetch(getSheetsUrl(), {
+      method: 'POST',
+      body: JSON.stringify({ action: 'saveConfig', key: 'sectionNames', value: JSON.stringify(sectionNames) }),
+    });
+  } catch(e) { console.warn('Config save failed:', e.message); }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+// API key is entered by the user via the chat panel — no pre-loaded key
+
+// Apply dark mode before render to avoid flash
+initDarkMode();
+
+// Render from local cache immediately (instant load)
+cleanupCompletedItems();
+render();
+initChat();
+updateKeyIndicator();
+
+// Then pull latest from Google Sheets in background, then cleanup again
+loadFromSheets().then(() => {
+  cleanupCompletedItems();
+  render();
+});
+loadSectionNamesFromSheet();
+
+// ── PWA Service Worker ───────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js').catch(e => console.warn('SW:', e.message));
+}
+</script>
+</body>
+</html>
