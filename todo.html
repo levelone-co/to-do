@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#16324F">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
@@ -1262,17 +1263,18 @@ function setSyncStatus(status) {
   const el = document.getElementById('syncStatus');
   if (!el) return;
   const map = {
-    synced:  { text: '☁ Synced',       color: '#22c55e', cursor: 'default' },
-    syncing: { text: '↻ Syncing…',     color: '#f59e0b', cursor: 'default' },
-    error:   { text: '⚠ Sync error',   color: '#ef4444', cursor: 'default' },
-    offline: { text: '◌ Local only',    color: '#aaa',    cursor: 'default' },
-    setup:   { text: '⚙ Setup needed', color: '#6c63ff', cursor: 'pointer' },
+    synced:  { text: '☁ Synced',       color: '#22c55e' },
+    syncing: { text: '↻ Syncing…',     color: '#f59e0b' },
+    error:   { text: '⚠ Sync error',   color: '#ef4444' },
+    offline: { text: '◌ Local only',    color: '#aaa'    },
+    setup:   { text: '⚙ Setup needed', color: '#6c63ff' },
   };
   const s = map[status] || map.offline;
   el.textContent = s.text;
   el.style.color = s.color;
-  el.style.cursor = s.cursor;
-  el.onclick = status === 'setup' ? showSheetsUrlPrompt : null;
+  el.style.cursor = 'pointer';
+  el.title = 'Click to update Sheets deployment URL';
+  el.onclick = showSheetsUrlPrompt;
 }
 
 // Convert flat sheet rows → sectioned state object
