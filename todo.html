@@ -2642,6 +2642,23 @@ loadFromSheets().then(() => {
 });
 loadSectionNamesFromSheet();
 
+// ── Daily midnight cleanup ────────────────────────────────────────────────────
+// If app stays open overnight, auto-cleanup at midnight
+function scheduleNextMidnightCleanup() {
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  const msUntilMidnight = tomorrow.getTime() - now.getTime();
+
+  setTimeout(() => {
+    cleanupCompletedItems();
+    render();
+    scheduleNextMidnightCleanup();
+  }, msUntilMidnight);
+}
+scheduleNextMidnightCleanup();
+
 // ── PWA Service Worker ───────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('service-worker.js').catch(e => console.warn('SW:', e.message));
