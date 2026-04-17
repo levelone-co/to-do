@@ -598,14 +598,14 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
     scroll-behavior: smooth;
   }
 
   .msg {
     display: flex;
     align-items: flex-end;
-    gap: 8px;
+    gap: 4px;
     max-width: 88%;
     animation: fadeUp 0.2s ease;
   }
@@ -1099,7 +1099,7 @@
   body.dark .dark-toggle:hover { background: #2e2e40; }
   body.dark .section-name-input { background: #252535; color: #eee; border-color: #6c63ff; }
   body.dark .due-date-wrap label { color: #7a7a90; }
-  body.dark #syncStatus { color: #7a7a90 !important; }
+  body.dark #syncStatus { color: #22c55e !important; }
   body.dark #apiKeyStatus { background: rgba(255,255,255,0.08); color: #9a9ab0; }
 
   /* Update banner */
@@ -1119,6 +1119,32 @@
   }
   .update-banner button:hover { background: rgba(255,255,255,0.35); }
   body.dark .update-banner { background: linear-gradient(90deg, #6c63ff, #a78bfa); }
+
+  /* Mobile responsiveness */
+  @media (max-width: 480px) {
+    .add-row {
+      flex-direction: column;
+      gap: 8px;
+    }
+    .add-row input {
+      width: 100%;
+    }
+    .add-row button {
+      width: 100%;
+    }
+  }
+
+  /* Drag and drop */
+  .todo-item[draggable="true"] {
+    cursor: grab;
+  }
+  .section.drag-over {
+    background: linear-gradient(135deg, #f0f0f8, #f8f8ff);
+    border: 2px dashed #6c63ff;
+  }
+  .todo-item.dragging {
+    opacity: 0.6;
+  }
 </style>
 </head>
 <body>
@@ -1228,18 +1254,43 @@
     <h2>Settings</h2>
     <div style="margin-top: 16px;">
       <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e0e0e0;">
-        <label style="font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: 600;">Sheets Deployment URL</label>
-        <input id="settingsSheetsUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec" style="
-          width: 100%; border: 1.5px solid #e0e0e0; border-radius: 8px; padding: 9px 12px;
-          font-size: 0.85rem; outline: none; margin-top: 6px; font-family: monospace;
-        ">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <label style="font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: 600;">Sheets Deployment URL</label>
+          <span title="Enter your Google Apps Script deployment URL" style="font-size: 0.8rem; color: #6c63ff; cursor: help;">ℹ️</span>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 6px;">
+          <input id="settingsSheetsUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec" style="
+            flex: 1; border: 1.5px solid #e0e0e0; border-radius: 8px; padding: 9px 12px;
+            font-size: 0.85rem; outline: none; font-family: monospace;
+          ">
+          <button onclick="testSheetsConnection()" style="
+            border: 1.5px solid #e0e0e0; border-radius: 8px; padding: 9px 12px; background: #f5f5f5;
+            font-size: 0.75rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+          ">Test</button>
+        </div>
+        <div id="sheetsTestResult" style="font-size: 0.8rem; margin-top: 6px; color: #888;"></div>
       </div>
       <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e0e0e0;">
-        <label style="font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: 600;">API Key</label>
-        <input id="settingsApiKey" type="password" placeholder="sk-ant-api03-…" style="
-          width: 100%; border: 1.5px solid #e0e0e0; border-radius: 8px; padding: 9px 12px;
-          font-size: 0.85rem; outline: none; margin-top: 6px; font-family: monospace;
-        ">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <label style="font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: 600;">API Key</label>
+          <span title="Get this from console.anthropic.com" style="font-size: 0.8rem; color: #6c63ff; cursor: help;">ℹ️</span>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 6px;">
+          <input id="settingsApiKey" type="password" placeholder="sk-ant-api03-…" style="
+            flex: 1; border: 1.5px solid #e0e0e0; border-radius: 8px; padding: 9px 12px;
+            font-size: 0.85rem; outline: none; font-family: monospace;
+          ">
+          <button onclick="testApiKey()" style="
+            border: 1.5px solid #e0e0e0; border-radius: 8px; padding: 9px 12px; background: #f5f5f5;
+            font-size: 0.75rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+          ">Verify</button>
+        </div>
+        <div id="apiTestResult" style="font-size: 0.8rem; margin-top: 6px; color: #888;"></div>
+      </div>
+
+      <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e0e0e0;">
+        <label style="font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: 600;">Last Synced</label>
+        <div id="lastSyncedTime" style="font-size: 0.9rem; margin-top: 6px; color: #666;">Never</div>
       </div>
       <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e0e0e0;">
         <label style="font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: 600;">Dark Mode</label>
@@ -1247,6 +1298,15 @@
           width: 100%; border: 1.5px solid #e0e0e0; border-radius: 8px; padding: 9px 12px;
           font-size: 0.9rem; background: #f5f5f5; cursor: pointer; margin-top: 6px;
         " id="settingsDarkModeBtn">🌙 Off</button>
+      </div>
+      <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e0e0e0;">
+        <label style="font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: 600;">Sections</label>
+        <div id="sectionsList" style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;"></div>
+        <button onclick="addNewSection()" style="
+          width: 100%; border: 1.5px solid #6c63ff; border-radius: 8px; padding: 8px 12px;
+          font-size: 0.85rem; background: transparent; color: #6c63ff; cursor: pointer;
+          font-weight: 600; margin-top: 8px;
+        ">+ Add Section</button>
       </div>
       <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e0e0e0;">
         <label style="font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: 600;">Version</label>
@@ -1284,8 +1344,9 @@ function findItemById(sec, id) {
 const APP_VERSION = '1.1.2'; // Increment when deploying
 const STORAGE_KEY  = 'todo_app_data_v1';
 const SECTION_NAMES_KEY = 'todo_section_names_v1';
-const SECTIONS_ORDER = ['one', 'two', 'shared'];
+const SECTIONS_ORDER_KEY = 'todo_sections_order_v1';
 const SHEETS_URL_STORAGE = 'todo_sheets_url_v1';
+const LAST_SYNC_TIME_KEY = 'todo_last_sync_time_v1';
 
 function getSheetsUrl() {
   try { return localStorage.getItem(SHEETS_URL_STORAGE) || ''; } catch(e) { return ''; }
@@ -1295,7 +1356,15 @@ function setSheetsUrl(url) {
   try { localStorage.setItem(SHEETS_URL_STORAGE, url); } catch(e) {}
 }
 
-// ── Section names ────────────────────────────────────────────────────────────
+function getLastSyncTime() {
+  try { return localStorage.getItem(LAST_SYNC_TIME_KEY) || null; } catch(e) { return null; }
+}
+
+function setLastSyncTime() {
+  try { localStorage.setItem(LAST_SYNC_TIME_KEY, new Date().toISOString()); } catch(e) {}
+}
+
+// ── Section names and order ──────────────────────────────────────────────────
 
 function loadSectionNames() {
   try {
@@ -1310,7 +1379,25 @@ function saveSectionNames() {
   if (typeof pushSectionNamesToSheet === 'function') pushSectionNamesToSheet();
 }
 
+function loadSectionsOrder() {
+  try {
+    const saved = localStorage.getItem(SECTIONS_ORDER_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  // Default: preserve backwards compatibility
+  const defOrder = ['one', 'two', 'shared'];
+  // Initialize any missing sections in localStorage
+  try { localStorage.setItem(SECTIONS_ORDER_KEY, JSON.stringify(defOrder)); } catch(e) {}
+  return defOrder;
+}
+
+function saveSectionsOrder() {
+  try { localStorage.setItem(SECTIONS_ORDER_KEY, JSON.stringify(SECTIONS_ORDER)); } catch(e) {}
+  if (typeof pushSectionNamesToSheet === 'function') pushSectionNamesToSheet();
+}
+
 let sectionNames = loadSectionNames();
+let SECTIONS_ORDER = loadSectionsOrder();
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -1336,20 +1423,34 @@ function saveLocalState() {
 function setSyncStatus(status) {
   // status: 'synced' | 'syncing' | 'error' | 'offline' | 'setup'
   const el = document.getElementById('syncStatus');
-  if (!el) return;
+  const badge = document.getElementById('syncBadgeText');
+  const badgeDot = document.getElementById('syncBadgeDot');
+
   const map = {
-    synced:  { text: '☁ Synced',       color: '#22c55e' },
-    syncing: { text: '↻ Syncing…',     color: '#f59e0b' },
-    error:   { text: '⚠ Sync error',   color: '#ef4444' },
-    offline: { text: '◌ Local only',    color: '#aaa'    },
-    setup:   { text: '⚙ Setup needed', color: '#6c63ff' },
+    synced:  { text: '☁ Synced',       color: '#22c55e', dot: '#22c55e' },
+    syncing: { text: '↻ Syncing…',     color: '#f59e0b', dot: '#f59e0b' },
+    error:   { text: '⚠ Sync error',   color: '#ef4444', dot: '#ef4444' },
+    offline: { text: '◌ Local only',    color: '#aaa',    dot: '#aaa' },
+    setup:   { text: '⚙ Setup needed', color: '#6c63ff', dot: '#6c63ff' },
   };
   const s = map[status] || map.offline;
-  el.textContent = s.text;
-  el.style.color = s.color;
-  el.style.cursor = 'pointer';
-  el.title = 'Click to update Sheets deployment URL';
-  el.onclick = showSheetsUrlPrompt;
+
+  // Update header sync status
+  if (el) {
+    el.textContent = s.text;
+    el.style.color = s.color;
+    el.style.cursor = 'pointer';
+    el.title = 'Click to update Sheets deployment URL';
+    el.onclick = showSheetsUrlPrompt;
+  }
+
+  // Update floating badge
+  if (badge) {
+    badge.textContent = s.text;
+  }
+  if (badgeDot) {
+    badgeDot.style.background = s.dot;
+  }
 }
 
 // Convert flat sheet rows → sectioned state object
@@ -1363,7 +1464,7 @@ function sheetsToState(todos) {
       text:        t.text,
       section:     sec,
       done:        t.done === true || t.done === 'TRUE',
-      tag:         t.tag || null,
+      tags:        t.tag ? t.tag.split(',').map(tag => tag.trim()).filter(tag => tag) : [],
       action:      null,
       createdAt:   t.createdAt || null,
       dueDate:     t.dueDate || null,
@@ -1396,7 +1497,7 @@ function stateToFlat() {
       text:        item.text,
       section:     sec,
       done:        item.done,
-      tag:         item.tag || '',
+      tag:         item.tags && item.tags.length ? item.tags.join(',') : '',
       createdAt:   item.createdAt || new Date().toISOString(),
       dueDate:     item.dueDate || '',
       completedAt: item.completedAt || '',
@@ -1418,6 +1519,7 @@ async function loadFromSheets() {
       state = sheetsToState(data.todos);
       saveLocalState();
       render();
+      setLastSyncTime();
       setSyncStatus('synced');
       return true;
     } else if (data.ok && data.todos.length === 0) {
@@ -1443,7 +1545,12 @@ async function pushToSheets() {
       body: JSON.stringify({ action: 'sync', todos: stateToFlat() }),
     });
     const data = await resp.json();
-    setSyncStatus(data.ok ? 'synced' : 'error');
+    if (data.ok) {
+      setLastSyncTime();
+      setSyncStatus('synced');
+    } else {
+      setSyncStatus('error');
+    }
   } catch(e) {
     setSyncStatus('error');
     console.warn('Sheets push failed:', e.message);
@@ -1520,6 +1627,61 @@ function saveState() {
 function render() {
   renderSections();
   updateProgress();
+  setupDragDrop();
+}
+
+function setupDragDrop() {
+  let draggedItem = null;
+
+  // Set up draggable items
+  document.querySelectorAll('.todo-item[draggable="true"]').forEach(item => {
+    item.addEventListener('dragstart', (e) => {
+      draggedItem = {
+        id: item.id.replace('item-', ''),
+        fromSection: item.className.split(' ')[2]
+      };
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    item.addEventListener('dragend', (e) => {
+      item.classList.remove('dragging');
+      draggedItem = null;
+      // Clear all drop zone highlights
+      document.querySelectorAll('.section.drag-over').forEach(s => s.classList.remove('drag-over'));
+    });
+  });
+
+  // Set up drop zones (sections)
+  document.querySelectorAll('[id^="section-"]').forEach(section => {
+    section.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      section.classList.add('drag-over');
+    });
+
+    section.addEventListener('dragleave', (e) => {
+      if (e.target === section) {
+        section.classList.remove('drag-over');
+      }
+    });
+
+    section.addEventListener('drop', (e) => {
+      e.preventDefault();
+      section.classList.remove('drag-over');
+
+      if (!draggedItem) return;
+
+      const toSection = section.id.replace('section-', '');
+      if (draggedItem.fromSection === toSection) return;
+
+      // Move the item
+      const item = findItem(draggedItem.fromSection, draggedItem.id);
+      if (item) {
+        moveItem(draggedItem.fromSection, draggedItem.id, toSection);
+      }
+    });
+  });
 }
 
 function renderSections() {
@@ -1549,13 +1711,6 @@ function renderSections() {
     header.appendChild(addBtn);
     secDiv.appendChild(header);
 
-    // Items list
-    const list = document.createElement('div');
-    list.id = 'list-' + secKey;
-    const sorted = sortItems(state[secKey] || []);
-    sorted.forEach(item => list.appendChild(makeItemEl(secKey, item)));
-    secDiv.appendChild(list);
-
     // Add row
     const addRow = document.createElement('div');
     addRow.className = 'add-row';
@@ -1567,6 +1722,13 @@ function renderSections() {
       <button class="cancel-btn" onclick="toggleAdd('${secKey}')">✕</button>
     `;
     secDiv.appendChild(addRow);
+
+    // Items list
+    const list = document.createElement('div');
+    list.id = 'list-' + secKey;
+    const sorted = sortItems(state[secKey] || []);
+    sorted.forEach(item => list.appendChild(makeItemEl(secKey, item)));
+    secDiv.appendChild(list);
     container.appendChild(secDiv);
   });
 }
@@ -1592,6 +1754,7 @@ function makeItemEl(section, item) {
   const row = document.createElement('div');
   row.className = 'todo-item' + (item.done ? ' done' : '') + ' ' + section;
   row.id = 'item-' + item.id;
+  row.draggable = true;
 
   // Checkbox
   const cb = document.createElement('input');
@@ -1698,6 +1861,14 @@ function makeItemEl(section, item) {
   editBtn.addEventListener('click', startInlineEdit);
   actions.appendChild(editBtn);
 
+  // 🔀 Move button
+  const moveBtn = document.createElement('button');
+  moveBtn.className = 'icon-btn move-btn';
+  moveBtn.title = 'Move to another section';
+  moveBtn.textContent = '🔀';
+  moveBtn.addEventListener('click', (e) => { e.stopPropagation(); showMoveMenu(section, item.id, moveBtn); });
+  actions.appendChild(moveBtn);
+
   // ✕ Delete
   const delBtn = document.createElement('button');
   delBtn.className = 'icon-btn delete-btn';
@@ -1736,20 +1907,23 @@ function makeItemEl(section, item) {
   // Tag picker (replaces static tag display)
   const tagWrap = document.createElement('div');
   tagWrap.className = 'tag-picker-wrap';
-  if (item.tag) {
-    const tagEl = document.createElement('span');
-    tagEl.className = 'tag ' + (item.tag === 'urgent' ? 'urgent' : item.tag === 'note' ? 'note' : '');
-    tagEl.textContent = item.tag;
-    tagEl.style.cursor = 'pointer';
-    tagEl.addEventListener('click', (e) => { e.stopPropagation(); toggleTagPicker(tagWrap, section, item.id); });
-    tagWrap.appendChild(tagEl);
-  } else {
-    const tagBtn = document.createElement('button');
-    tagBtn.className = 'tag-btn';
-    tagBtn.textContent = '+ tag';
-    tagBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleTagPicker(tagWrap, section, item.id); });
-    tagWrap.appendChild(tagBtn);
+  if (item.tags && item.tags.length) {
+    item.tags.forEach(tag => {
+      const tagEl = document.createElement('span');
+      tagEl.className = 'tag ' + (tag === 'urgent' ? 'urgent' : tag === 'note' ? 'note' : '');
+      tagEl.textContent = tag;
+      tagEl.style.cursor = 'pointer';
+      tagEl.title = 'Click to manage tags';
+      tagEl.addEventListener('click', (e) => { e.stopPropagation(); toggleTagPicker(tagWrap, section, item.id); });
+      tagWrap.appendChild(tagEl);
+    });
   }
+  // Always show add button
+  const tagBtn = document.createElement('button');
+  tagBtn.className = 'tag-btn';
+  tagBtn.textContent = '+ tag';
+  tagBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleTagPicker(tagWrap, section, item.id); });
+  tagWrap.appendChild(tagBtn);
   row.insertBefore(tagWrap, actions);
 
   // Right-click for notes
@@ -1839,6 +2013,81 @@ function showActionPrompt(item) {
   openActionSheet(item.section, item.id);
 }
 
+// ── Move Item ────────────────────────────────────────────────────────────────
+
+function showMoveMenu(fromSection, id, btn) {
+  // Close any open menus
+  document.querySelectorAll('.move-menu').forEach(m => m.remove());
+
+  const item = findItem(fromSection, id);
+  if (!item) return;
+
+  const menu = document.createElement('div');
+  menu.className = 'move-menu';
+  menu.style.position = 'absolute';
+  menu.style.background = 'white';
+  menu.style.border = '1.5px solid #e0e0e0';
+  menu.style.borderRadius = '8px';
+  menu.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+  menu.style.zIndex = '1000';
+  menu.style.minWidth = '150px';
+
+  SECTIONS_ORDER.forEach(sec => {
+    if (sec === fromSection) return; // Skip current section
+
+    const option = document.createElement('button');
+    option.style.display = 'block';
+    option.style.width = '100%';
+    option.style.padding = '10px 14px';
+    option.style.border = 'none';
+    option.style.background = 'none';
+    option.style.textAlign = 'left';
+    option.style.cursor = 'pointer';
+    option.style.fontSize = '0.9rem';
+    option.style.color = '#333';
+    option.style.borderBottom = '1px solid #f0f0f0';
+    option.textContent = sectionNames[sec] || sec;
+
+    option.addEventListener('mouseover', () => { option.style.background = '#f5f5f5'; });
+    option.addEventListener('mouseout', () => { option.style.background = 'none'; });
+
+    option.addEventListener('click', () => {
+      moveItem(fromSection, id, sec);
+      menu.remove();
+    });
+
+    menu.appendChild(option);
+  });
+
+  // Position menu near the button
+  const rect = btn.getBoundingClientRect();
+  menu.style.top = (rect.bottom + 4) + 'px';
+  menu.style.left = (rect.left - 150 + rect.width) + 'px';
+  document.body.appendChild(menu);
+
+  // Close on outside click
+  setTimeout(() => {
+    const close = (e) => { if (!menu.contains(e.target) && e.target !== btn) { menu.remove(); document.removeEventListener('click', close); } };
+    document.addEventListener('click', close);
+  }, 10);
+}
+
+function moveItem(fromSection, id, toSection) {
+  const item = findItem(fromSection, id);
+  if (!item || fromSection === toSection) return;
+
+  // Remove from source section
+  state[fromSection] = state[fromSection].filter(i => i.id !== id);
+
+  // Update item and add to target section
+  item.section = toSection;
+  item.updatedAt = new Date().toISOString();
+  state[toSection].push(item);
+
+  saveState();
+  render();
+}
+
 // ── Tag Picker ───────────────────────────────────────────────────────────────
 
 const PRESET_TAGS = ['urgent', 'note', 'waiting', 'low'];
@@ -1853,11 +2102,16 @@ function toggleTagPicker(wrapEl, section, id) {
   dropdown = document.createElement('div');
   dropdown.className = 'tag-dropdown visible';
 
+  const item = findItem(section, id);
+  const currentTags = item && item.tags ? item.tags : [];
+
   PRESET_TAGS.forEach(t => {
     const btn = document.createElement('button');
     btn.className = 'tag-option';
-    btn.textContent = t;
-    btn.addEventListener('click', () => { setTag(section, id, t); dropdown.remove(); });
+    const hasTag = currentTags.includes(t);
+    btn.textContent = (hasTag ? '✓ ' : '') + t;
+    btn.style.fontWeight = hasTag ? '600' : '400';
+    btn.addEventListener('click', () => { toggleTag(section, id, t); dropdown.remove(); });
     dropdown.appendChild(btn);
   });
 
@@ -1868,20 +2122,26 @@ function toggleTagPicker(wrapEl, section, id) {
   customInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
       const val = customInput.value.trim();
-      if (val) { setTag(section, id, val); dropdown.remove(); }
+      if (val) { addTag(section, id, val); dropdown.remove(); }
     }
     if (e.key === 'Escape') dropdown.remove();
   });
   dropdown.appendChild(customInput);
 
-  // Remove tag option
-  const item = findItem(section, id);
-  if (item && item.tag) {
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'tag-option remove';
-    removeBtn.textContent = '\u2715 Remove tag';
-    removeBtn.addEventListener('click', () => { setTag(section, id, null); dropdown.remove(); });
-    dropdown.appendChild(removeBtn);
+  // Remove tags section
+  if (currentTags.length > 0) {
+    const sep = document.createElement('div');
+    sep.style.borderTop = '1px solid #ddd';
+    sep.style.margin = '4px 0';
+    dropdown.appendChild(sep);
+
+    currentTags.forEach(tag => {
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'tag-option remove';
+      removeBtn.textContent = '\u2715 ' + tag;
+      removeBtn.addEventListener('click', () => { removeTag(section, id, tag); dropdown.remove(); });
+      dropdown.appendChild(removeBtn);
+    });
   }
 
   wrapEl.appendChild(dropdown);
@@ -1893,13 +2153,44 @@ function toggleTagPicker(wrapEl, section, id) {
   }, 10);
 }
 
-function setTag(section, id, tag) {
+function addTag(section, id, tag) {
   const item = findItem(section, id);
   if (!item) return;
-  item.tag = tag;
-  item.updatedAt = new Date().toISOString();
-  saveState();
-  render();
+  if (!item.tags) item.tags = [];
+  tag = tag.trim().toLowerCase();
+  if (!item.tags.includes(tag)) {
+    item.tags.push(tag);
+    item.updatedAt = new Date().toISOString();
+    saveState();
+    render();
+  }
+}
+
+function removeTag(section, id, tag) {
+  const item = findItem(section, id);
+  if (!item) return;
+  if (item.tags) {
+    item.tags = item.tags.filter(t => t !== tag);
+    item.updatedAt = new Date().toISOString();
+    saveState();
+    render();
+  }
+}
+
+function toggleTag(section, id, tag) {
+  const item = findItem(section, id);
+  if (!item) return;
+  if (!item.tags) item.tags = [];
+  if (item.tags.includes(tag)) {
+    removeTag(section, id, tag);
+  } else {
+    addTag(section, id, tag);
+  }
+}
+
+// Keep setTag for backward compatibility (used as addTag)
+function setTag(section, id, tag) {
+  addTag(section, id, tag);
 }
 
 // ── Notes ────────────────────────────────────────────────────────────────────
@@ -2088,7 +2379,7 @@ function addItem(section) {
   const id = section[0] + Date.now();
   const dueInput = document.getElementById('due-' + section);
   const dueDate = dueInput && dueInput.value ? new Date(dueInput.value + 'T00:00:00').toISOString() : null;
-  state[section].push({ id, text, section, done: false, tag: null, action: null, createdAt: new Date().toISOString(), dueDate, completedAt: null, notes: null, updatedAt: new Date().toISOString() });
+  state[section].push({ id, text, section, done: false, tags: [], action: null, createdAt: new Date().toISOString(), dueDate, completedAt: null, notes: null, updatedAt: new Date().toISOString() });
   saveState();
   input.value = '';
   if (dueInput) dueInput.value = '';
@@ -2106,16 +2397,31 @@ function updateProgress() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const all = [...state.one, ...state.two, ...state.shared];
-  // Only count items with a due date of today
+
+  // Count items due today
   const todayItems = all.filter(i => {
     if (!i.dueDate) return false;
     const due = new Date(i.dueDate);
     due.setHours(0, 0, 0, 0);
     return due.getTime() === today.getTime();
   });
-  const done = todayItems.filter(i => i.done).length;
-  const pct = todayItems.length ? Math.round((done / todayItems.length) * 100) : 0;
-  document.getElementById('progressBar').style.width = pct + '%';
+
+  // Count overdue items (not yet done)
+  const overdueItems = all.filter(i => {
+    if (!i.dueDate || i.done) return false;
+    const due = new Date(i.dueDate);
+    due.setHours(0, 0, 0, 0);
+    return due.getTime() < today.getTime();
+  });
+
+  // Count all completed items in state
+  const done = all.filter(i => i.done).length;
+
+  // Calculate percentage: completed / (due today + overdue) * 100
+  const countItems = todayItems.length + overdueItems.length;
+  const pct = countItems ? Math.round((done / countItems) * 100) : 0;
+
+  document.getElementById('progressBar').style.width = Math.min(pct, 100) + '%';
   document.getElementById('pctLabel').textContent = pct + '%';
   document.getElementById('allDone').style.display = (pct === 100 && todayItems.length > 0) ? 'block' : 'none';
 }
@@ -2147,6 +2453,165 @@ function showSettings() {
   document.getElementById('versionLabel').textContent = `v${APP_VERSION}`;
   const isDark = document.body.classList.contains('dark');
   document.getElementById('settingsDarkModeBtn').textContent = isDark ? '☀️ On' : '🌙 Off';
+  renderSectionsList();
+  updateLastSyncedDisplay();
+}
+
+function updateLastSyncedDisplay() {
+  const lastSync = getLastSyncTime();
+  const el = document.getElementById('lastSyncedTime');
+  if (!lastSync) {
+    el.textContent = 'Never';
+  } else {
+    const date = new Date(lastSync);
+    el.textContent = date.toLocaleString();
+  }
+}
+
+async function testSheetsConnection() {
+  const url = document.getElementById('settingsSheetsUrl').value.trim();
+  if (!url) {
+    document.getElementById('sheetsTestResult').textContent = '❌ Please enter a URL';
+    return;
+  }
+  const result = document.getElementById('sheetsTestResult');
+  result.textContent = '⏳ Testing...';
+  try {
+    const resp = await fetch(url, { method: 'GET' });
+    const data = await resp.json();
+    if (data.ok) {
+      result.textContent = '✅ Connection successful';
+      result.style.color = '#22c55e';
+    } else {
+      result.textContent = '❌ API returned an error';
+      result.style.color = '#ef4444';
+    }
+  } catch(e) {
+    result.textContent = '❌ Connection failed: ' + e.message;
+    result.style.color = '#ef4444';
+  }
+}
+
+async function testApiKey() {
+  const key = document.getElementById('settingsApiKey').value.trim();
+  if (!key) {
+    document.getElementById('apiTestResult').textContent = '❌ Please enter an API key';
+    return;
+  }
+  const result = document.getElementById('apiTestResult');
+  result.textContent = '⏳ Verifying...';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-haiku-20241022',
+        max_tokens: 10,
+        messages: [{ role: 'user', content: 'hi' }]
+      })
+    });
+    if (resp.status === 401) {
+      result.textContent = '❌ Invalid API key';
+      result.style.color = '#ef4444';
+    } else if (resp.ok || resp.status === 400) {
+      result.textContent = '✅ API key is valid';
+      result.style.color = '#22c55e';
+    } else {
+      result.textContent = '❌ API error: ' + resp.status;
+      result.style.color = '#ef4444';
+    }
+  } catch(e) {
+    result.textContent = '❌ Verification failed: ' + e.message;
+    result.style.color = '#ef4444';
+  }
+}
+
+function renderSectionsList() {
+  const list = document.getElementById('sectionsList');
+  list.innerHTML = '';
+  SECTIONS_ORDER.forEach(sec => {
+    const item = document.createElement('div');
+    item.style.display = 'flex';
+    item.style.alignItems = 'center';
+    item.style.justifyContent = 'space-between';
+    item.style.padding = '8px 12px';
+    item.style.background = '#f5f5f5';
+    item.style.borderRadius = '6px';
+    item.style.fontSize = '0.9rem';
+
+    const name = document.createElement('span');
+    name.textContent = sectionNames[sec] || sec;
+    item.appendChild(name);
+
+    if (sec !== 'shared') {
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = '✕ Delete';
+      deleteBtn.style.background = 'none';
+      deleteBtn.style.border = 'none';
+      deleteBtn.style.color = '#e53935';
+      deleteBtn.style.cursor = 'pointer';
+      deleteBtn.style.fontSize = '0.8rem';
+      deleteBtn.style.fontWeight = '600';
+      deleteBtn.onclick = () => {
+        if (confirm(`Delete section "${sectionNames[sec] || sec}"? Its tasks will move to Shared.`)) {
+          deleteSection(sec);
+        }
+      };
+      item.appendChild(deleteBtn);
+    }
+
+    list.appendChild(item);
+  });
+}
+
+function addNewSection() {
+  const name = prompt('Section name:');
+  if (!name || !name.trim()) return;
+
+  const key = name.toLowerCase().replace(/\s+/g, '_').slice(0, 20);
+  if (SECTIONS_ORDER.includes(key)) {
+    alert('Section already exists');
+    return;
+  }
+
+  SECTIONS_ORDER.push(key);
+  sectionNames[key] = name.trim();
+  state[key] = [];
+
+  saveSectionsOrder();
+  saveSectionNames();
+  saveLocalState();
+  render();
+  renderSectionsList();
+}
+
+function deleteSection(sec) {
+  if (sec === 'shared') return; // Prevent deleting shared
+
+  // Move all tasks from this section to shared
+  if (state[sec]) {
+    state[sec].forEach(item => {
+      item.section = 'shared';
+      item.updatedAt = new Date().toISOString();
+    });
+    state.shared.push(...state[sec]);
+    state[sec] = [];
+  }
+
+  // Remove from sections
+  SECTIONS_ORDER = SECTIONS_ORDER.filter(s => s !== sec);
+  delete sectionNames[sec];
+  delete state[sec];
+
+  saveSectionsOrder();
+  saveSectionNames();
+  saveLocalState();
+  render();
+  renderSectionsList();
 }
 
 function closeSettings() {
@@ -2460,7 +2925,7 @@ function parseClaudeResponse(raw) {
     if (act.action === 'add' && act.section && act.text) {
       const id = act.section[0] + Date.now() + Math.random().toString(36).slice(2,5);
       if (state[act.section]) {
-        state[act.section].push({ id, text: act.text, done: false, tag: null, action: null, createdAt: new Date().toISOString(), dueDate: act.dueDate || null, completedAt: null, notes: null });
+        state[act.section].push({ id, text: act.text, done: false, tags: [], action: null, createdAt: new Date().toISOString(), dueDate: act.dueDate || null, completedAt: null, notes: null, updatedAt: new Date().toISOString() });
         saveState(); render();
       }
     } else if (act.action === 'done' && act.id) {
@@ -2647,6 +3112,49 @@ function generateReply(msg) {
     };
   }
 
+  // ── Split item ──
+  if (/\b(split|break|divide)\b/.test(m) && /\b(into|and)\b/.test(m)) {
+    // Try to find a task to split
+    const match = all.find(i => m.includes(i.text.toLowerCase().slice(0,12)));
+    if (match) {
+      // Try to extract parts (e.g., "split X into A and B")
+      const splitRegex = /split.*?into\s+(.+?)\s+and\s+(.+?)(?:\s|$)/i;
+      const parts = msg.match(splitRegex);
+      if (parts && parts[1] && parts[2]) {
+        const part1 = parts[1].trim();
+        const part2 = parts[2].trim();
+
+        // Get the original due date to clone
+        const dueDate = match.dueDate;
+
+        // Create two new items
+        const id1 = match.section[0] + Date.now() + '1';
+        const id2 = match.section[0] + Date.now() + '2';
+
+        state[match.section].push({
+          id: id1, text: part1, section: match.section, done: false, tags: [],
+          action: null, createdAt: new Date().toISOString(),
+          dueDate, completedAt: null, notes: null, updatedAt: new Date().toISOString()
+        });
+        state[match.section].push({
+          id: id2, text: part2, section: match.section, done: false, tags: [],
+          action: null, createdAt: new Date().toISOString(),
+          dueDate, completedAt: null, notes: null, updatedAt: new Date().toISOString()
+        });
+
+        // Mark or remove the original
+        markDone(match.section, match.id, true);
+
+        saveState(); render();
+        return {
+          reply: `Split "${match.text}" into:\n• ${part1}\n• ${part2}\n\nOriginal marked done. ✓`,
+          chips: ['Show pending items', 'What else?']
+        };
+      }
+    }
+    return { reply: "Which task should I split? Say something like: 'Split buy milk and eggs into buy milk and buy eggs'", chips: pending.slice(0,3).map(i => 'Split: ' + i.text.slice(0,25)) };
+  }
+
   // ── Add item ──
   if (/\b(add|create|new item|put|append)\b/.test(m)) {
     // Try to match a section name from the message
@@ -2660,7 +3168,7 @@ function generateReply(msg) {
         SECTIONS_ORDER.forEach(k => { if (sectionNames[k].toLowerCase() === matched) section = k; });
       }
       const id = section[0] + Date.now();
-      state[section].push({ id, text: clean, done: false, tag: null, action: null, createdAt: new Date().toISOString(), dueDate: null, completedAt: null, notes: null, updatedAt: new Date().toISOString() });
+      state[section].push({ id, text: clean, done: false, tags: [], action: null, createdAt: new Date().toISOString(), dueDate: null, completedAt: null, notes: null, updatedAt: new Date().toISOString() });
       saveState(); render();
       return { reply: `Added "${clean}" to ${sectionNames[section]}. ✓`, chips: ['What else is pending?'] };
     }
@@ -2675,6 +3183,71 @@ function generateReply(msg) {
       return { reply: `Marked "${match.text}" as done. ✓`, chips: ['What\'s still left?'] };
     }
     return { reply: "Which item would you like to mark done? You can say part of the item name.", chips: pending.slice(0,3).map(i => 'Done: ' + i.text.slice(0,28)) };
+  }
+
+  // ── Set due date ──
+  if (/\b(due|deadline|when)\b/.test(m) && /(today|tomorrow|next|week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{4}-\d{2}-\d{2})/.test(m)) {
+    const match = all.find(i => m.includes(i.text.toLowerCase().slice(0,12)));
+    if (match) {
+      let dueDate = null;
+      const daysMap = {'tomorrow': 1, 'next week': 7};
+
+      // Try to extract date
+      for (const [key, days] of Object.entries(daysMap)) {
+        if (m.includes(key)) {
+          const d = new Date();
+          d.setDate(d.getDate() + days);
+          dueDate = d.toISOString().split('T')[0];
+          break;
+        }
+      }
+
+      // Try to match ISO date
+      const isoMatch = msg.match(/(\d{4}-\d{2}-\d{2})/);
+      if (isoMatch) dueDate = isoMatch[1];
+
+      // Try day of week
+      if (!dueDate) {
+        const daysOfWeek = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+        const matchedDay = daysOfWeek.find(day => m.includes(day));
+        if (matchedDay) {
+          const d = new Date();
+          const today = d.getDay();
+          const target = daysOfWeek.indexOf(matchedDay);
+          let daysToAdd = (target - today + 7) % 7;
+          if (daysToAdd === 0) daysToAdd = 7; // Next week if same day
+          d.setDate(d.getDate() + daysToAdd);
+          dueDate = d.toISOString().split('T')[0];
+        }
+      }
+
+      if (dueDate) {
+        match.dueDate = new Date(dueDate + 'T00:00:00').toISOString();
+        match.updatedAt = new Date().toISOString();
+        saveState(); render();
+        return { reply: `Set due date for "${match.text}" to ${formatDateShort(match.dueDate)}. ✓`, chips: ['What else?'] };
+      }
+    }
+    return { reply: "Which item should I set the due date for? You can say part of the item name.", chips: pending.slice(0,3).map(i => i.text.slice(0,28)) };
+  }
+
+  // ── Move to section ──
+  if (/\b(move|go to|section|transfer)\b/.test(m)) {
+    const match = all.find(i => m.includes(i.text.toLowerCase().slice(0,12)));
+    if (match) {
+      const secRegex = new RegExp(`\\b(${Object.values(sectionNames).join('|')})\\b`, 'i');
+      const secMatch = msg.match(secRegex);
+      if (secMatch) {
+        const targetSecName = secMatch[1].toLowerCase();
+        const targetSec = SECTIONS_ORDER.find(k => sectionNames[k].toLowerCase() === targetSecName);
+        if (targetSec && targetSec !== match.section) {
+          moveItem(match.section, match.id, targetSec);
+          return { reply: `Moved "${match.text}" to ${sectionNames[targetSec]}. ✓`, chips: ['What else?'] };
+        }
+      }
+      return { reply: `Which section? Choose from: ${sectionList}`, chips: SECTIONS_ORDER.map(k => 'Move to ' + sectionNames[k]) };
+    }
+    return { reply: "Which item would you like to move? You can say part of the item name.", chips: all.slice(0,3).map(i => i.text.slice(0,28)) };
   }
 
   // ── Draft message ──
@@ -2853,6 +3426,21 @@ if ('serviceWorker' in navigator) {
     <button onclick="dismissUpdateBanner()">Dismiss</button>
   </div>
 </div>
+
+<!-- Floating Sync Badge -->
+<div id="syncBadge" onclick="showSheetsUrlPrompt()" style="
+  position:fixed; bottom:80px; right:20px;
+  background:white; border-radius:99px; padding:8px 14px;
+  font-size:0.75rem; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.15);
+  z-index:45; cursor:pointer; opacity:0.85; transition:opacity 0.2s;
+  display:flex; align-items:center; gap:6px; white-space:nowrap;
+" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'" title="Click to update Sheets URL">
+  <span id="syncBadgeText">◌ Loading…</span>
+  <span id="syncBadgeDot" style="width:8px; height:8px; border-radius:50%; background:#aaa;"></span>
+</div>
+
+<!-- Ko-fi Link -->
+<a href="https://ko-fi.com/H2H71XAPZJ" target="_blank" rel="noopener noreferrer" style="position:fixed; bottom:20px; left:20px; background:#ff5e78; color:white; padding:10px 16px; border-radius:99px; font-size:0.9rem; font-weight:600; text-decoration:none; box-shadow:0 2px 8px rgba(0,0,0,0.2); z-index:40; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'" title="Buy me a coffee">☕ Coffee</a>
 
 </body>
 </html>

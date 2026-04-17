@@ -67,4 +67,3 @@ When updating the backend:
 
 ---
 
-Built with Claude Code
