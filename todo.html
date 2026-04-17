@@ -1101,6 +1101,24 @@
   body.dark .due-date-wrap label { color: #7a7a90; }
   body.dark #syncStatus { color: #7a7a90 !important; }
   body.dark #apiKeyStatus { background: rgba(255,255,255,0.08); color: #9a9ab0; }
+
+  /* Update banner */
+  .update-banner {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(90deg, #6c63ff, #a78bfa);
+    color: white; padding: 14px 20px;
+    display: flex; align-items: center; gap: 12px; justify-content: space-between;
+    font-size: 0.9rem; z-index: 99;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+  }
+  .update-banner button {
+    background: rgba(255,255,255,0.25); color: white;
+    border: 1px solid white; border-radius: 4px;
+    padding: 6px 12px; cursor: pointer; font-weight: 600;
+    font-size: 0.85rem;
+  }
+  .update-banner button:hover { background: rgba(255,255,255,0.35); }
+  body.dark .update-banner { background: linear-gradient(90deg, #6c63ff, #a78bfa); }
 </style>
 </head>
 <body>
@@ -1257,6 +1275,12 @@ const INITIAL_TODOS = {
   shared: []
 };
 
+// Helper to find item by ID across sections
+function findItemById(sec, id) {
+  if (!state[sec]) return null;
+  return state[sec].find(i => i.id === id);
+}
+
 const APP_VERSION = '1.1.2'; // Increment when deploying
 const STORAGE_KEY  = 'todo_app_data_v1';
 const SECTION_NAMES_KEY = 'todo_section_names_v1';
@@ -1329,11 +1353,12 @@ function setSyncStatus(status) {
 }
 
 // Convert flat sheet rows → sectioned state object
+// MERGES with local state using updatedAt timestamps (conflict resolution)
 function sheetsToState(todos) {
   const s = { one: [], two: [], shared: [] };
   todos.forEach(t => {
     const sec = t.section && s[t.section] !== undefined ? t.section : 'one';
-    s[sec].push({
+    const incoming = {
       id:          t.id,
       text:        t.text,
       section:     sec,
@@ -1344,7 +1369,20 @@ function sheetsToState(todos) {
       dueDate:     t.dueDate || null,
       completedAt: t.completedAt || null,
       notes:       t.notes || null,
-    });
+      updatedAt:   t.updatedAt || null
+    };
+    // Conflict resolution: local wins if newer
+    const existing = findItemById(sec, incoming.id);
+    if (!existing) {
+      s[sec].push(incoming);
+    } else {
+      const incomingTime = incoming.updatedAt ? new Date(incoming.updatedAt).getTime() : 0;
+      const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+      if (incomingTime > existingTime) {
+        Object.assign(existing, incoming); // Server is newer
+      }
+      s[sec].push(existing);
+    }
   });
   return s;
 }
@@ -1363,6 +1401,7 @@ function stateToFlat() {
       dueDate:     item.dueDate || '',
       completedAt: item.completedAt || '',
       notes:       item.notes || '',
+      updatedAt:   item.updatedAt || new Date().toISOString(),
     }));
   });
   return rows;
@@ -1611,6 +1650,7 @@ function makeItemEl(section, item) {
     } else {
       item.dueDate = null;
     }
+    item.updatedAt = new Date().toISOString();
     saveState();
     row.classList.remove('editing');
     editInput.value = item.text;
@@ -1784,6 +1824,7 @@ function markDone(section, id, done) {
   if (!item) return;
   item.done = done;
   item.completedAt = done ? new Date().toISOString() : null;
+  item.updatedAt = new Date().toISOString();
   saveState();
   const row = document.getElementById('item-' + id);
   if (row) {
@@ -1856,6 +1897,7 @@ function setTag(section, id, tag) {
   const item = findItem(section, id);
   if (!item) return;
   item.tag = tag;
+  item.updatedAt = new Date().toISOString();
   saveState();
   render();
 }
@@ -2011,6 +2053,7 @@ function startEdit(section, id, label) {
   input.focus();
   const finish = () => {
     item.text = input.value.trim() || item.text;
+    item.updatedAt = new Date().toISOString();
     saveState();
     render();
   };
@@ -2045,7 +2088,7 @@ function addItem(section) {
   const id = section[0] + Date.now();
   const dueInput = document.getElementById('due-' + section);
   const dueDate = dueInput && dueInput.value ? new Date(dueInput.value + 'T00:00:00').toISOString() : null;
-  state[section].push({ id, text, section, done: false, tag: null, action: null, createdAt: new Date().toISOString(), dueDate, completedAt: null, notes: null });
+  state[section].push({ id, text, section, done: false, tag: null, action: null, createdAt: new Date().toISOString(), dueDate, completedAt: null, notes: null, updatedAt: new Date().toISOString() });
   saveState();
   input.value = '';
   if (dueInput) dueInput.value = '';
@@ -2124,6 +2167,53 @@ function saveSettings() {
 function checkForUpdates() {
   const msg = `You're on v${APP_VERSION}. Latest release available at: https://github.com/levelone-co/to-do/releases`;
   alert(msg);
+}
+
+// ── GitHub Update Checker ─────────────────────────────────────────────────────
+
+async function checkGitHubForUpdates() {
+  try {
+    const resp = await fetch('https://api.github.com/repos/levelone-co/to-do/releases/latest');
+    if (!resp.ok) throw new Error('Release check failed');
+    const data = await resp.json();
+    const latestVersion = data.tag_name.replace('v', '');
+    const current = APP_VERSION;
+    if (parseFloat(latestVersion) > parseFloat(current)) {
+      showUpdateBanner(latestVersion, data.html_url);
+    }
+  } catch(e) {
+    console.warn('Update check failed:', e.message);
+  }
+}
+
+function showUpdateBanner(version, releaseUrl) {
+  const banner = document.getElementById('updateBanner');
+  document.getElementById('updateMsg').textContent = `Update available: v${APP_VERSION} → v${version}`;
+  banner.dataset.releaseUrl = releaseUrl;
+  banner.style.display = 'flex';
+}
+
+function dismissUpdateBanner() {
+  document.getElementById('updateBanner').style.display = 'none';
+}
+
+function goToReleases() {
+  const url = document.getElementById('updateBanner').dataset.releaseUrl;
+  window.open(url, '_blank');
+}
+
+// Schedule daily update checks at 22:00 (10 PM)
+function scheduleNextDailyUpdateCheck() {
+  const now = new Date();
+  const nextCheck = new Date(now);
+  nextCheck.setHours(22, 0, 0, 0);
+  if (nextCheck <= now) nextCheck.setDate(nextCheck.getDate() + 1);
+  const msUntilCheck = nextCheck.getTime() - now.getTime();
+
+  setTimeout(() => {
+    checkGitHubForUpdates();
+    scheduleNextDailyUpdateCheck();
+  }, msUntilCheck);
 }
 
 document.getElementById('settingsOverlay').addEventListener('click', e => {
@@ -2570,7 +2660,7 @@ function generateReply(msg) {
         SECTIONS_ORDER.forEach(k => { if (sectionNames[k].toLowerCase() === matched) section = k; });
       }
       const id = section[0] + Date.now();
-      state[section].push({ id, text: clean, done: false, tag: null, action: null, createdAt: new Date().toISOString(), dueDate: null, completedAt: null, notes: null });
+      state[section].push({ id, text: clean, done: false, tag: null, action: null, createdAt: new Date().toISOString(), dueDate: null, completedAt: null, notes: null, updatedAt: new Date().toISOString() });
       saveState(); render();
       return { reply: `Added "${clean}" to ${sectionNames[section]}. ✓`, chips: ['What else is pending?'] };
     }
@@ -2745,10 +2835,24 @@ function scheduleNextMidnightCleanup() {
 }
 scheduleNextMidnightCleanup();
 
+// Check for updates on boot + daily at 22:00
+checkGitHubForUpdates();
+scheduleNextDailyUpdateCheck();
+
 // ── PWA Service Worker ───────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('service-worker.js').catch(e => console.warn('SW:', e.message));
 }
 </script>
+
+<!-- Update Banner -->
+<div id="updateBanner" class="update-banner" style="display:none;">
+  <span id="updateMsg"></span>
+  <div style="display:flex; gap:8px;">
+    <button onclick="goToReleases()">Download</button>
+    <button onclick="dismissUpdateBanner()">Dismiss</button>
+  </div>
+</div>
+
 </body>
 </html>

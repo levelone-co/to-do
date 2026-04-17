@@ -10,7 +10,7 @@ const SHEET_ID    = 'YOUR_SHEET_ID_HERE';
 const SHEET_NAME  = 'Todos';
 const DONE_SHEET  = 'Done';
 const CONFIG_SHEET = 'Config';
-const HEADERS     = ['id', 'text', 'section', 'done', 'tag', 'createdAt', 'dueDate', 'completedAt', 'notes'];
+const HEADERS     = ['id', 'text', 'section', 'done', 'tag', 'createdAt', 'dueDate', 'completedAt', 'notes', 'updatedAt'];
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -78,7 +78,8 @@ function rowToObj(row) {
     createdAt:   row[5] || null,
     dueDate:     row[6] || null,
     completedAt: row[7] || null,
-    notes:       row[8] || null
+    notes:       row[8] || null,
+    updatedAt:   row[9] || null
   };
 }
 
@@ -92,7 +93,8 @@ function todoToRow(t) {
     t.createdAt || new Date().toISOString(),
     t.dueDate || '',
     t.completedAt || '',
-    t.notes || ''
+    t.notes || '',
+    t.updatedAt || new Date().toISOString()
   ];
 }
 
@@ -139,20 +141,43 @@ function doPost(e) {
     const action = body.action;
     const sheet  = getSheet();
 
-    // ── SYNC: replace entire todo list ──
+    // ── SYNC: merge incoming todos with sheet (conflict resolution by updatedAt)
     if (action === 'sync') {
       const todos = body.todos || [];
+      const data = sheet.getDataRange().getValues();
+      const merged = {};
 
-      // Clear everything below headers
+      // Build map of existing todos by ID
+      for (let i = 1; i < data.length; i++) {
+        const existing = rowToObj(data[i]);
+        merged[existing.id] = existing;
+      }
+
+      // Merge incoming todos (newer versions overwrite older)
+      todos.forEach(incoming => {
+        const existing = merged[incoming.id];
+        if (!existing) {
+          merged[incoming.id] = incoming; // New item
+        } else {
+          const incomingTime = incoming.updatedAt ? new Date(incoming.updatedAt).getTime() : 0;
+          const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+          if (incomingTime > existingTime) {
+            merged[incoming.id] = incoming; // Server update is newer
+          }
+          // else: existing is newer, keep it
+        }
+      });
+
+      // Clear sheet and write merged data
       const lastRow = sheet.getLastRow();
       if (lastRow > 1) sheet.deleteRows(2, lastRow - 1);
 
-      // Write all rows
-      if (todos.length) {
-        const rows = todos.map(todoToRow);
+      const merged_todos = Object.values(merged);
+      if (merged_todos.length) {
+        const rows = merged_todos.map(todoToRow);
         sheet.getRange(2, 1, rows.length, HEADERS.length).setValues(rows);
       }
-      return cors({ ok: true, synced: todos.length });
+      return cors({ ok: true, synced: merged_todos.length, merged: true });
     }
 
     // ── ADD: append a new todo ──
