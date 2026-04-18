@@ -1145,6 +1145,18 @@
   .todo-item.dragging {
     opacity: 0.6;
   }
+
+  /* Toast notification animation */
+  @keyframes slideIn {
+    from {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
 </style>
 </head>
 <body>
@@ -1405,6 +1417,8 @@ let state        = loadLocalState();
 let pendingCheck = null;
 let syncTimer    = null;
 let syncPending  = false;
+let syncRetryCount = 0;
+const MAX_SYNC_RETRIES = 3;
 
 function loadLocalState() {
   try {
@@ -1451,6 +1465,28 @@ function setSyncStatus(status) {
   if (badgeDot) {
     badgeDot.style.background = s.dot;
   }
+}
+
+function showSyncError(message) {
+  // Show sync error as a toast notification
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position: fixed; top: 20px; right: 20px;
+    background: #ef4444; color: white;
+    padding: 12px 16px; border-radius: 8px;
+    font-size: 0.85rem; z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    animation: slideIn 0.3s ease;
+  `;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  // Auto-remove after 5 seconds
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 5000);
 }
 
 // Convert flat sheet rows → sectioned state object
@@ -1513,24 +1549,48 @@ async function loadFromSheets() {
   if (!getSheetsUrl()) { setSyncStatus('setup'); return false; }
   setSyncStatus('syncing');
   try {
+    console.log('[Sync] Loading from Sheets:', getSheetsUrl());
     const resp = await fetch(getSheetsUrl(), { method: 'GET' });
+    if (!resp.ok) {
+      console.error('[Sync] HTTP error:', resp.status, resp.statusText);
+      throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+    }
     const data = await resp.json();
-    if (data.ok && Array.isArray(data.todos) && data.todos.length > 0) {
+    console.log('[Sync] Response:', data);
+
+    if (data.ok && Array.isArray(data.todos)) {
       state = sheetsToState(data.todos);
       saveLocalState();
       render();
       setLastSyncTime();
+      syncRetryCount = 0; // Reset retry count on success
+
+      // Auto-save section names on first successful sync
+      pushSectionNamesToSheet();
+
       setSyncStatus('synced');
       return true;
-    } else if (data.ok && data.todos.length === 0) {
+    } else if (data.ok && Array.isArray(data.todos) && data.todos.length === 0) {
       // Sheet is empty — push our local data up
+      console.log('[Sync] Sheet is empty, pushing local data');
       await pushToSheets();
+      return true;
     } else {
+      console.error('[Sync] Invalid response:', data);
+      showSyncError('Invalid response from Sheets. Check your deployment URL.');
       setSyncStatus('error');
     }
   } catch(e) {
+    console.error('[Sync] Error:', e.message);
+    showSyncError(`Sync failed: ${e.message}`);
     setSyncStatus('offline');
-    console.warn('Sheets load failed, using local cache:', e.message);
+
+    // Retry after 3 seconds
+    if (syncRetryCount < MAX_SYNC_RETRIES) {
+      syncRetryCount++;
+      console.log(`[Sync] Retrying... (${syncRetryCount}/${MAX_SYNC_RETRIES})`);
+      setTimeout(() => loadFromSheets(), 3000);
+    }
   }
   return false;
 }
@@ -1540,20 +1600,38 @@ async function pushToSheets() {
   if (!getSheetsUrl()) { setSyncStatus('setup'); return; }
   setSyncStatus('syncing');
   try {
+    const todos = stateToFlat();
+    console.log('[Sync] Pushing to Sheets:', todos.length, 'items');
     const resp = await fetch(getSheetsUrl(), {
       method: 'POST',
-      body: JSON.stringify({ action: 'sync', todos: stateToFlat() }),
+      body: JSON.stringify({ action: 'sync', todos }),
     });
+    if (!resp.ok) {
+      console.error('[Sync] HTTP error:', resp.status, resp.statusText);
+      throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+    }
     const data = await resp.json();
+    console.log('[Sync] Push response:', data);
     if (data.ok) {
       setLastSyncTime();
+      syncRetryCount = 0;
       setSyncStatus('synced');
     } else {
+      console.error('[Sync] Server error:', data);
+      showSyncError('Failed to sync: ' + (data.error || 'unknown error'));
       setSyncStatus('error');
     }
   } catch(e) {
-    setSyncStatus('error');
-    console.warn('Sheets push failed:', e.message);
+    console.error('[Sync] Push error:', e.message);
+    showSyncError(`Push failed: ${e.message}`);
+    setSyncStatus('offline');
+
+    // Retry after 3 seconds
+    if (syncRetryCount < MAX_SYNC_RETRIES) {
+      syncRetryCount++;
+      console.log(`[Sync] Retrying push... (${syncRetryCount}/${MAX_SYNC_RETRIES})`);
+      setTimeout(() => pushToSheets(), 3000);
+    }
   }
 }
 
@@ -3038,31 +3116,99 @@ function updateKeyIndicator() {
 // ── Sheets URL prompt ────────────────────────────────────────────────────────
 
 function showSheetsUrlPrompt() {
-  showModal('Connect to Google Sheets', 'Paste your Apps Script deployment URL to sync your tasks.');
+  showModal('Connect to Google Sheets', 'Enter your setup details to sync tasks.');
   const body = document.querySelector('.modal p');
+  const currentUrl = getSheetsUrl();
+
   body.innerHTML = `
-    <input id="sheetsUrlInput" type="url" placeholder="https://script.google.com/macros/s/…/exec" style="
-      width:100%; border:1.5px solid #e0e0e0; border-radius:8px;
-      padding:9px 12px; font-size:0.85rem; outline:none; margin-bottom:8px; font-family:monospace;
-    " value="${getSheetsUrl()}">
-    <div style="font-size:0.78rem; color:#aaa;">Deploy <code>TodoAppScript.gs</code> as a Web App, then paste the URL here. See the README for setup steps.</div>
+    <div style="margin-bottom: 16px;">
+      <label style="font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: 600;">Option 1: Sheet ID</label>
+      <div style="display: flex; gap: 8px; margin-top: 6px;">
+        <input id="sheetIdInput" type="text" placeholder="1a2b3c4d5e6f..." style="
+          flex: 1; border: 1.5px solid #e0e0e0; border-radius: 8px;
+          padding: 9px 12px; font-size: 0.85rem; outline: none; font-family: monospace;
+        ">
+        <button onclick="validateSheetId()" style="
+          border: 1.5px solid #6c63ff; background: none; color: #6c63ff;
+          border-radius: 8px; padding: 9px 12px; font-size: 0.8rem;
+          font-weight: 600; cursor: pointer; white-space: nowrap;
+        ">Check</button>
+      </div>
+      <div id="sheetIdResult" style="font-size: 0.75rem; margin-top: 4px; color: #666;"></div>
+    </div>
+
+    <div style="border-top: 1px solid #e0e0e0; padding-top: 12px; padding-bottom: 12px;">
+      <label style="font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: 600;">Option 2: Full Deployment URL</label>
+      <input id="sheetsUrlInput" type="url" placeholder="https://script.google.com/macros/s/…/exec" style="
+        width: 100%; border: 1.5px solid #e0e0e0; border-radius: 8px;
+        padding: 9px 12px; font-size: 0.85rem; outline: none; margin-top: 6px; font-family: monospace;
+      " value="${currentUrl}">
+    </div>
+
+    <div style="font-size: 0.75rem; color: #aaa; line-height: 1.4;">
+      <strong>Sheet ID:</strong> Found in sheet URL between <code>/d/</code> and <code>/edit</code><br>
+      <strong>Deployment URL:</strong> From Apps Script > Deploy > New Deployment > Web App
+    </div>
   `;
-  document.getElementById('modalYes').textContent = 'Save & Connect';
+
+  document.getElementById('modalYes').textContent = 'Save & Sync';
   document.getElementById('modalNo').textContent = 'Cancel';
   document.getElementById('modalYes').onclick = () => {
-    const url = document.getElementById('sheetsUrlInput').value.trim();
-    if (url.startsWith('https://script.google.com/')) {
-      setSheetsUrl(url);
+    const sheetId = document.getElementById('sheetIdInput')?.value.trim();
+    const fullUrl = document.getElementById('sheetsUrlInput')?.value.trim();
+    let urlToUse = '';
+
+    // If sheet ID is provided, construct the URL
+    if (sheetId && sheetId.length > 10) {
+      // For sheet ID, we need the deployment ID too. For now, try to extract from any existing URL
+      const existingUrl = getSheetsUrl();
+      const deployMatch = existingUrl.match(/script\.google\.com\/macros\/s\/([^\/]+)\//);
+      if (deployMatch) {
+        urlToUse = `https://script.google.com/macros/s/${deployMatch[1]}/exec`;
+        document.getElementById('sheetIdResult').textContent = '✓ Using deployment from existing URL';
+      } else {
+        document.getElementById('sheetIdResult').textContent = '❌ Need deployment URL first';
+        return;
+      }
+    } else if (fullUrl && fullUrl.startsWith('https://script.google.com/')) {
+      urlToUse = fullUrl;
+    }
+
+    if (urlToUse) {
+      setSheetsUrl(urlToUse);
       closeModal();
       resetModal();
-      loadFromSheets().then(() => { cleanupCompletedItems(); render(); });
+      console.log('[Setup] Connecting to:', urlToUse);
+      syncRetryCount = 0; // Reset retry count
+      loadFromSheets().then(() => {
+        cleanupCompletedItems();
+        render();
+      });
       loadSectionNamesFromSheet();
     } else {
       document.getElementById('sheetsUrlInput').style.borderColor = '#e53935';
+      showSyncError('Please enter either a Sheet ID or full Deployment URL');
     }
   };
   document.getElementById('modalNo').onclick = () => { closeModal(); resetModal(); };
-  setTimeout(() => document.getElementById('sheetsUrlInput')?.focus(), 100);
+  setTimeout(() => document.getElementById('sheetIdInput')?.focus(), 100);
+}
+
+function validateSheetId() {
+  const sheetId = document.getElementById('sheetIdInput')?.value.trim();
+  const result = document.getElementById('sheetIdResult');
+  if (!sheetId) {
+    result.textContent = 'Enter a Sheet ID';
+    result.style.color = '#f59e0b';
+    return;
+  }
+  if (sheetId.length < 10) {
+    result.textContent = '❌ Sheet ID looks too short';
+    result.style.color = '#ef4444';
+    return;
+  }
+  result.textContent = '✓ Sheet ID looks valid (use full URL to complete setup)';
+  result.style.color = '#22c55e';
 }
 
 // ── Smart reply engine ────────────────────────────────────────────────────────
@@ -3351,14 +3497,25 @@ function updateDarkToggle() {
 async function loadSectionNamesFromSheet() {
   if (!getSheetsUrl()) return;
   try {
+    console.log('[Config] Loading section names from sheet');
     const resp = await fetch(getSheetsUrl() + '?config=sectionNames');
+    if (!resp.ok) {
+      console.warn('[Config] HTTP error:', resp.status);
+      return;
+    }
     const data = await resp.json();
+    console.log('[Config] Response:', data);
     if (data.ok && data.config && data.config.sectionNames) {
+      console.log('[Config] Loaded section names:', data.config.sectionNames);
       sectionNames = data.config.sectionNames;
       saveSectionNames();
       render();
+    } else {
+      console.log('[Config] No section names in config yet (fresh install), will save on next sync');
     }
-  } catch(e) { console.warn('Config load failed:', e.message); }
+  } catch(e) {
+    console.warn('[Config] Load failed (non-critical):', e.message);
+  }
 }
 
 async function pushSectionNamesToSheet() {
