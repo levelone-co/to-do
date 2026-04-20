@@ -21,7 +21,9 @@ function getSheet() {
     sheet = ss.insertSheet(SHEET_NAME);
     sheet.appendRow(HEADERS);
     sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
   }
+  if (sheet.getFrozenRows() < 1) sheet.setFrozenRows(1);
   return sheet;
 }
 
@@ -32,7 +34,9 @@ function getDoneSheet() {
     sheet = ss.insertSheet(DONE_SHEET);
     sheet.appendRow(HEADERS);
     sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
   }
+  if (sheet.getFrozenRows() < 1) sheet.setFrozenRows(1);
   return sheet;
 }
 
@@ -43,7 +47,9 @@ function getConfigSheet() {
     sheet = ss.insertSheet(CONFIG_SHEET);
     sheet.appendRow(['key', 'value']);
     sheet.getRange(1, 1, 1, 2).setFontWeight('bold');
+    sheet.setFrozenRows(1);
   }
+  if (sheet.getFrozenRows() < 1) sheet.setFrozenRows(1);
   return sheet;
 }
 
@@ -168,9 +174,11 @@ function doPost(e) {
         }
       });
 
-      // Clear sheet and write merged data
+      // Clear sheet data (but keep header row) and write merged data
       const lastRow = sheet.getLastRow();
-      if (lastRow > 1) sheet.deleteRows(2, lastRow - 1);
+      if (lastRow > 1) {
+        sheet.getRange(2, 1, lastRow - 1, HEADERS.length).clearContent();
+      }
 
       const merged_todos = Object.values(merged);
       if (merged_todos.length) {
