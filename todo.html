@@ -1101,6 +1101,8 @@
   body.dark .due-date-wrap label { color: #7a7a90; }
   body.dark #syncStatus { color: #22c55e !important; }
   body.dark #apiKeyStatus { background: rgba(255,255,255,0.08); color: #9a9ab0; }
+  body.dark #syncBadge { background: #252535; color: #e0e0f0; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+  body.dark header button[title="Settings"] { background: #252535 !important; border-color: #3a3a4c !important; color: #c0c0d0 !important; }
 
   /* Footer */
   .footer {
@@ -1202,7 +1204,7 @@
       </div>
       <div style="display:flex; gap:8px; margin-top:2px; align-items:center; justify-content:flex-end;">
         <div id="syncStatus" style="font-size:0.72rem; color:#aaa; cursor:pointer; white-space:nowrap;">◌ Loading…</div>
-        <button onclick="showSettings()" title="Settings" style="background:none; border:none; cursor:pointer; font-size:1rem; padding:2px 4px; color:#888; hover:opacity:0.7;">⚙</button>
+        <button onclick="showSettings()" title="Settings" style="background:#f5f5f5; border:1px solid #e0e0e0; border-radius:6px; cursor:pointer; font-size:0.75rem; padding:4px 10px; color:#666; font-weight:600;">Settings</button>
       </div>
     </div>
   </header>
@@ -1381,7 +1383,7 @@ function findItemById(sec, id) {
   return state[sec].find(i => i.id === id);
 }
 
-const APP_VERSION = '1.1.4'; // Increment when deploying
+const APP_VERSION = '1.1.5'; // Increment when deploying
 const STORAGE_KEY  = 'todo_app_data_v1';
 const SECTION_NAMES_KEY = 'todo_section_names_v1';
 const SECTIONS_ORDER_KEY = 'todo_sections_order_v1';
@@ -1552,11 +1554,17 @@ function sheetsToState(todos) {
   return s;
 }
 
+// Ensure every section key in SECTIONS_ORDER has a backing array in state
+function ensureStateBuckets() {
+  SECTIONS_ORDER.forEach(sec => { if (!Array.isArray(state[sec])) state[sec] = []; });
+}
+
 // Convert sectioned state → flat array for Sheets
 function stateToFlat() {
+  ensureStateBuckets();
   const rows = [];
   SECTIONS_ORDER.forEach(sec => {
-    state[sec].forEach(item => rows.push({
+    (state[sec] || []).forEach(item => rows.push({
       id:          item.id,
       text:        item.text,
       section:     sec,
@@ -1665,6 +1673,7 @@ async function pushToSheets() {
 
 // Auto-cleanup: archive items completed before today to the Done sheet
 function cleanupCompletedItems() {
+  ensureStateBuckets();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const toArchive = [];
@@ -2499,11 +2508,13 @@ function findItem(section, id) {
 // ── Progress ──────────────────────────────────────────────────────────────────
 
 function updateProgress() {
+  ensureStateBuckets();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const all = [...state.one, ...state.two, ...state.shared];
+  const all = [];
+  SECTIONS_ORDER.forEach(sec => (state[sec] || []).forEach(i => all.push(i)));
 
-  // Count items due today
+  // Count items due today (denominator — if none, fall back to 1)
   const todayItems = all.filter(i => {
     if (!i.dueDate) return false;
     const due = new Date(i.dueDate);
@@ -2511,24 +2522,16 @@ function updateProgress() {
     return due.getTime() === today.getTime();
   });
 
-  // Count overdue items (not yet done)
-  const overdueItems = all.filter(i => {
-    if (!i.dueDate || i.done) return false;
-    const due = new Date(i.dueDate);
-    due.setHours(0, 0, 0, 0);
-    return due.getTime() < today.getTime();
-  });
-
   // Count all completed items in state
   const done = all.filter(i => i.done).length;
 
-  // Calculate percentage: completed / (due today + overdue) * 100
-  const countItems = todayItems.length + overdueItems.length;
-  const pct = countItems ? Math.round((done / countItems) * 100) : 0;
+  // Denominator: tasks due today, min 1
+  const denom = todayItems.length || 1;
+  const pct = Math.round((done / denom) * 100);
 
   document.getElementById('progressBar').style.width = Math.min(pct, 100) + '%';
   document.getElementById('pctLabel').textContent = pct + '%';
-  document.getElementById('allDone').style.display = (pct === 100 && todayItems.length > 0) ? 'block' : 'none';
+  document.getElementById('allDone').style.display = (pct >= 100 && todayItems.length > 0) ? 'block' : 'none';
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
@@ -3290,6 +3293,7 @@ function validateSheetId() {
 // ── Smart reply engine ────────────────────────────────────────────────────────
 
 function getAllTodos() {
+  ensureStateBuckets();
   const all = [];
   SECTIONS_ORDER.forEach(sec => {
     state[sec].forEach(item => all.push({ ...item, section: sec }));
@@ -3697,22 +3701,22 @@ if ('serviceWorker' in navigator) {
 
 <!-- Floating Sync Badge -->
 <div id="syncBadge" onclick="showSheetsUrlPrompt()" style="
-  position:fixed; bottom:80px; right:20px;
-  background:white; border-radius:99px; padding:8px 14px;
+  position:fixed; top:10px; left:50%; transform:translateX(-50%);
+  background:white; border-radius:99px; padding:6px 14px;
   font-size:0.75rem; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.15);
-  z-index:45; cursor:pointer; opacity:0.85; transition:opacity 0.2s;
+  z-index:60; cursor:pointer; opacity:0.9; transition:opacity 0.2s;
   display:flex; align-items:center; gap:6px; white-space:nowrap;
-" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'" title="Click to update Sheets URL">
-  <span id="syncBadgeText">◌ Loading…</span>
+" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'" title="Click to update Sheets URL">
   <span id="syncBadgeDot" style="width:8px; height:8px; border-radius:50%; background:#aaa;"></span>
+  <span id="syncBadgeText">◌ Loading…</span>
 </div>
 
 <!-- Footer -->
 <link href="https://fonts.googleapis.com/css?family=Quicksand:400,700" rel="stylesheet" type="text/css">
 <div class="footer">
-  <a href="https://www.levelone.co.za" target="_blank" rel="noopener">www.levelone.co.za</a>
+  by <a href="https://www.levelone.co.za" target="_blank" rel="noopener">levelone.co.za</a>
   <span style="opacity:0.3; margin:0 6px;">|</span>
-  <a href="https://github.com/levelone-co/to-do/" target="_blank" rel="noopener">v1.1.4</a><br>
+  <a href="https://github.com/levelone-co/to-do/" target="_blank" rel="noopener">v1.1.5</a><br>
   <div class="btn-container">
     <a title="Support me on ko-fi.com" class="kofi-button" style="background-color: rgb(0, 0, 0);" href="https://ko-fi.com/H2H71XAPZJ" target="_blank" rel="noopener">
       <span class="kofitext"><img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi donations" class="kofiimg">Click here to buy me a coffee</span>
